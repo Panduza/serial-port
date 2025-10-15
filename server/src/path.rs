@@ -32,23 +32,3 @@ pub fn global_config_file() -> Option<PathBuf> {
 pub fn factory_manifest_file() -> Option<PathBuf> {
     user_root_dir().map(|root| root.join("panduza-power-supply-factory.json5"))
 }
-
-// Directory and file management functions
-
-/// Ensure that the user root directory exists
-///
-/// Creates the `.panduza` directory in the user's home directory if it doesn't exist.
-///
-/// # Returns
-///
-/// `Ok(())` if the directory exists or was created successfully, or an `io::Error` if creation failed.
-pub fn ensure_user_root_dir_exists() -> io::Result<()> {
-    if let Some(dir) = user_root_dir() {
-        fs::create_dir_all(dir)
-    } else {
-        Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            "Unable to determine home directory",
-        ))
-    }
-}

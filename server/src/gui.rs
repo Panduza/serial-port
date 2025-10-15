@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use panduza_power_supply_client::{PowerSupplyClient, PowerSupplyClientBuilder};
+use panduza_serial_port_client::{PowerSupplyClient, PowerSupplyClientBuilder};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

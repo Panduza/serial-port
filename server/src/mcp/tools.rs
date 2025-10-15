@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
 
-use panduza_power_supply_client::PowerSupplyClient;
-use panduza_power_supply_client::PowerSupplyClientBuilder;
+use panduza_serial_port_client::PowerSupplyClient;
+use panduza_serial_port_client::PowerSupplyClientBuilder;
 
 use crate::config::GlobalConfig;
 

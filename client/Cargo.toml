@@ -1,16 +1,16 @@
 [package]
-name = "panduza-power-supply-client"
+name = "panduza-serial-port-client"
 version = "0.1.0"
 authors = ["XdoctorwhoZ <xavier.rodriguezalvarez@gmail.com>"]
 edition = "2021"
-description = "Panduza Power Supply Client - Library for interacting with Panduza Power Supply server"
+description = "Panduza Serial Port Client - Library for interacting with Panduza Serial Port server"
 license = "MIT"
-repository = "https://github.com/XdoctorwhoZ/panduza-power-supply"
-keywords = ["panduza", "power-supply", "mqtt", "client", "embedded"]
+repository = "https://github.com/XdoctorwhoZ/panduza-serial-port"
+keywords = ["panduza", "serial-port", "mqtt", "client", "embedded"]
 categories = ["api-bindings", "network-programming"]
 
 [lib]
-name = "panduza_power_supply_client"
+name = "panduza_serial_port_client"
 crate-type = ["lib"]
 
 [dependencies]

@@ -79,10 +79,10 @@ impl Factory {
     /// Write the manifest data to the factory manifest file
     pub fn write_manifest_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Ensure the user root directory exists
-        path::ensure_user_root_dir_exists()?;
+        panduza_toolkit::path::ensure_user_root_dir_exists()?;
 
         // Get the factory manifest file path
-        let manifest_file_path = path::factory_manifest_file()
+        let manifest_file_path = crate::path::factory_manifest_file()
             .ok_or("Unable to determine factory manifest file path")?;
 
         info!(

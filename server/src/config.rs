@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info};
 
-use panduza_power_supply_client::config::MqttBrokerConfig;
+use panduza_serial_port_client::config::MqttBrokerConfig;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GuiConfig {
@@ -122,7 +122,7 @@ impl GlobalConfig {
     ///
     fn generate_default_config(config_path: &Path) -> Self {
         // Ensure the user root directory exists
-        if let Err(err) = crate::path::ensure_user_root_dir_exists() {
+        if let Err(err) = panduza_toolkit::path::ensure_user_root_dir_exists() {
             panic!("Failed to create user root directory: {}", err);
         }
 

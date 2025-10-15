@@ -1,9 +1,9 @@
 [package]
-name = "panduza-power-supply-server"
+name = "panduza-serial-port-server"
 version = "0.1.0"
 authors = ["XdoctorwhoZ <xavier.rodriguezalvarez@gmail.com>"]
 edition = "2021"
-description = "Panduza Power Supply Server - MQTT broker and device management"
+description = "Panduza Serial Port Server - MQTT broker and device management"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +17,8 @@ thiserror = { workspace = true }
 async-trait = { workspace = true }
 
 # Local dependencies
-panduza-power-supply-client = { path = "../client" }
+panduza-serial-port-client = { path = "../client" }
+panduza-toolkit = { path = "../toolkit" }
 
 # Server-specific dependencies
 dioxus = { version = "0.6.3", features = [] }

@@ -6,8 +6,8 @@
 /// - If the power is disabled display "OFF" and color must be Red
 ///
 use dioxus::prelude::*;
-use panduza_power_supply_client::client::CallbackId;
-use panduza_power_supply_client::PowerSupplyClient;
+use panduza_serial_port_client::client::CallbackId;
+use panduza_serial_port_client::PowerSupplyClient;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 
