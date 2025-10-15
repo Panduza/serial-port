@@ -143,90 +143,6 @@ impl Runner {
         let mut driver = self.driver.lock().await;
 
         driver.initialize().await.expect("Driver init failed");
-
-        // Publish initial output enable state
-        let oe_value = driver.output_enabled().await.unwrap();
-        self.client
-            .publish(
-                self.topic_control_oe.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                Bytes::from(if oe_value { "ON" } else { "OFF" }),
-            )
-            .await
-            .unwrap();
-
-        // Get and check initial voltage setting
-        let mut voltage = driver.get_voltage().await.unwrap();
-        if let Ok(voltage_value) = voltage.parse::<f32>() {
-            let mut adjusted_voltage = voltage_value;
-
-            // Check against minimum voltage limit
-            if let Some(min_voltage) = driver.security_min_voltage() {
-                if voltage_value < min_voltage {
-                    adjusted_voltage = min_voltage;
-                }
-            }
-
-            // Check against maximum voltage limit
-            if let Some(max_voltage) = driver.security_max_voltage() {
-                if voltage_value > max_voltage {
-                    adjusted_voltage = max_voltage;
-                }
-            }
-
-            // If voltage was adjusted, set it in the driver
-            if adjusted_voltage != voltage_value {
-                voltage = adjusted_voltage.to_string();
-                let _ = driver.set_voltage(voltage.clone()).await;
-            }
-        }
-
-        self.client
-            .publish(
-                self.topic_control_voltage.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                Bytes::from(voltage),
-            )
-            .await
-            .unwrap();
-
-        // Get and check initial current setting
-        let mut current = driver.get_current().await.unwrap();
-        if let Ok(current_value) = current.parse::<f32>() {
-            let mut adjusted_current = current_value;
-
-            // Check against minimum current limit
-            if let Some(min_current) = driver.security_min_current() {
-                if current_value < min_current {
-                    adjusted_current = min_current;
-                }
-            }
-
-            // Check against maximum current limit
-            if let Some(max_current) = driver.security_max_current() {
-                if current_value > max_current {
-                    adjusted_current = max_current;
-                }
-            }
-
-            // If current was adjusted, set it in the driver
-            if adjusted_current != current_value {
-                current = adjusted_current.to_string();
-                let _ = driver.set_current(current.clone()).await;
-            }
-        }
-
-        self.client
-            .publish(
-                self.topic_control_current.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                Bytes::from(current),
-            )
-            .await
-            .unwrap();
     }
 
     // --------------------------------------------------------------------------------
@@ -237,15 +153,15 @@ impl Runner {
         let cmd = String::from_utf8(payload.to_vec()).unwrap();
         let mut driver = self.driver.lock().await;
         if cmd == "ON" {
-            driver
-                .enable_output()
-                .await
-                .expect("Failed to enable output");
+            // driver
+            //     .enable_output()
+            //     .await
+            //     .expect("Failed to enable output");
         } else if cmd == "OFF" {
-            driver
-                .disable_output()
-                .await
-                .expect("Failed to disable output");
+            // driver
+            //     .disable_output()
+            //     .await
+            //     .expect("Failed to disable output");
         } else {
             // Invalid command
             self.client
@@ -263,20 +179,20 @@ impl Runner {
         // Wait a bit for the device to process the command
         tokio::time::sleep(Duration::from_millis(200)).await;
 
-        // Read back the actual output enable state to confirm
-        let oe_value = driver.output_enabled().await.expect("Failed to get state");
-        let payload_back = Bytes::from(if oe_value { "ON" } else { "OFF" });
+        // // Read back the actual output enable state to confirm
+        // let oe_value = driver.output_enabled().await.expect("Failed to get state");
+        // let payload_back = Bytes::from(if oe_value { "ON" } else { "OFF" });
 
-        // Confirm the new state by publishing it
-        self.client
-            .publish(
-                self.topic_control_oe.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                payload_back,
-            )
-            .await
-            .unwrap();
+        // // Confirm the new state by publishing it
+        // self.client
+        //     .publish(
+        //         self.topic_control_oe.clone(),
+        //         rumqttc::QoS::AtLeastOnce,
+        //         true,
+        //         payload_back,
+        //     )
+        //     .await
+        //     .unwrap();
     }
 
     // --------------------------------------------------------------------------------
@@ -285,51 +201,28 @@ impl Runner {
     async fn handle_voltage_command(&self, payload: Bytes) {
         let cmd = String::from_utf8(payload.to_vec()).unwrap();
         let mut driver = self.driver.lock().await;
-        driver
-            .set_voltage(cmd)
-            .await
-            .expect("Failed to set voltage");
+        // driver
+        //     .set_voltage(cmd)
+        //     .await
+        //     .expect("Failed to set voltage");
 
-        // Wait a bit for the device to process the command
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        // // Wait a bit for the device to process the command
+        // tokio::time::sleep(Duration::from_millis(200)).await;
 
-        // Read back the actual set voltage to confirm
-        let voltage = driver.get_voltage().await.expect("Failed to get voltage");
-        let payload_back = Bytes::from(voltage);
+        // // Read back the actual set voltage to confirm
+        // let voltage = driver.get_voltage().await.expect("Failed to get voltage");
+        // let payload_back = Bytes::from(voltage);
 
-        // Confirm the new state by publishing it
-        self.client
-            .publish(
-                self.topic_control_voltage.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                payload_back,
-            )
-            .await
-            .unwrap();
-    }
-
-    // --------------------------------------------------------------------------------
-
-    /// Handle current setting commands
-    async fn handle_current_command(&self, payload: Bytes) {
-        let cmd = String::from_utf8(payload.to_vec()).unwrap();
-        let mut driver = self.driver.lock().await;
-        driver
-            .set_current(cmd)
-            .await
-            .expect("Failed to set current");
-
-        // Confirm the new state by publishing it
-        self.client
-            .publish(
-                self.topic_control_current.clone(),
-                rumqttc::QoS::AtLeastOnce,
-                true,
-                payload,
-            )
-            .await
-            .unwrap();
+        // // Confirm the new state by publishing it
+        // self.client
+        //     .publish(
+        //         self.topic_control_voltage.clone(),
+        //         rumqttc::QoS::AtLeastOnce,
+        //         true,
+        //         payload_back,
+        //     )
+        //     .await
+        //     .unwrap();
     }
 
     // --------------------------------------------------------------------------------
@@ -344,10 +237,6 @@ impl Runner {
         // Set Voltage
         else if topic.eq(&self.topic_control_voltage_cmd) {
             self.handle_voltage_command(payload).await;
-        }
-        // Set Current
-        else if topic.eq(&self.topic_control_current_cmd) {
-            self.handle_current_command(payload).await;
         }
         // Set Measurement Refresh Frequencies
         else if topic.eq(&self.topic_measure_voltage_refresh_freq) {
