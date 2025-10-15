@@ -3,7 +3,7 @@ use thiserror::Error as ThisError;
 use tokio::sync::Mutex;
 use tracing::info;
 
-use crate::{config::PowerSupplyConfig, drivers::PowerSupplyDriver, path};
+use crate::{config::PowerSupplyConfig, drivers::SerialPortDriver};
 
 #[derive(ThisError, Debug, Clone)]
 pub enum FactoryError {
@@ -13,9 +13,9 @@ pub enum FactoryError {
 
 pub struct Factory {
     /// This map store Driver generators.
-    /// Generator are function that return a PowerSupplyDriver
+    /// Generator are function that return a SerialPortDriver
     pub map:
-        HashMap<String, fn(PowerSupplyConfig) -> Arc<Mutex<dyn PowerSupplyDriver + Send + Sync>>>,
+        HashMap<String, fn(PowerSupplyConfig) -> Arc<Mutex<dyn SerialPortDriver + Send + Sync>>>,
 
     /// The manifest of available power supply devices
     pub manifest: HashMap<String, serde_json::Value>,
@@ -60,7 +60,7 @@ impl Factory {
     pub fn register_driver<A: Into<String>>(
         &mut self,
         model: A,
-        generator: fn(PowerSupplyConfig) -> Arc<Mutex<dyn PowerSupplyDriver + Send + Sync>>,
+        generator: fn(PowerSupplyConfig) -> Arc<Mutex<dyn SerialPortDriver + Send + Sync>>,
     ) {
         self.map.insert(model.into(), generator);
     }
@@ -68,7 +68,7 @@ impl Factory {
     pub fn instanciate_driver(
         &self,
         config: PowerSupplyConfig,
-    ) -> Result<Arc<Mutex<dyn PowerSupplyDriver + Send + Sync>>, FactoryError> {
+    ) -> Result<Arc<Mutex<dyn SerialPortDriver + Send + Sync>>, FactoryError> {
         if let Some(generator) = self.map.get(&config.model) {
             Ok(generator(config))
         } else {

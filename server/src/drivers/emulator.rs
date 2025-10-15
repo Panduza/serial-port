@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::config::PowerSupplyConfig;
 use crate::drivers::DriverError;
-use crate::drivers::PowerSupplyDriver;
+use crate::drivers::SerialPortDriver;
 
 /// A power supply emulator for testing and development purposes
 pub struct PowerSupplyEmulator {
@@ -46,7 +46,7 @@ impl PowerSupplyEmulator {
 }
 
 #[async_trait]
-impl PowerSupplyDriver for PowerSupplyEmulator {
+impl SerialPortDriver for PowerSupplyEmulator {
     /// Initialize the driver
     async fn initialize(&mut self) -> Result<(), DriverError> {
         info!("Emulator Driver: initialize");
@@ -101,26 +101,6 @@ impl PowerSupplyDriver for PowerSupplyEmulator {
             .parse()
             .map_err(|_| DriverError::Generic(format!("Invalid voltage format: {}", voltage)))?;
 
-        // Check security minimum voltage
-        if let Some(min_voltage) = self.security_min_voltage {
-            if voltage_value < min_voltage {
-                return Err(DriverError::VoltageSecurityLimitExceeded(format!(
-                    "Voltage {} is below minimum security limit of {}",
-                    voltage_value, min_voltage
-                )));
-            }
-        }
-
-        // Check security maximum voltage
-        if let Some(max_voltage) = self.security_max_voltage {
-            if voltage_value > max_voltage {
-                return Err(DriverError::VoltageSecurityLimitExceeded(format!(
-                    "Voltage {} exceeds maximum security limit of {}",
-                    voltage_value, max_voltage
-                )));
-            }
-        }
-
         self.voltage = voltage;
         Ok(())
     }
@@ -151,26 +131,6 @@ impl PowerSupplyDriver for PowerSupplyEmulator {
         let current_value: f32 = current
             .parse()
             .map_err(|_| DriverError::Generic(format!("Invalid current format: {}", current)))?;
-
-        // Check security minimum current
-        if let Some(min_current) = self.security_min_current {
-            if current_value < min_current {
-                return Err(DriverError::CurrentSecurityLimitExceeded(format!(
-                    "Current {} is below minimum security limit of {}",
-                    current_value, min_current
-                )));
-            }
-        }
-
-        // Check security maximum current
-        if let Some(max_current) = self.security_max_current {
-            if current_value > max_current {
-                return Err(DriverError::CurrentSecurityLimitExceeded(format!(
-                    "Current {} exceeds maximum security limit of {}",
-                    current_value, max_current
-                )));
-            }
-        }
 
         self.current = current;
         Ok(())

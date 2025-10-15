@@ -1,4 +1,4 @@
-use crate::drivers::PowerSupplyDriver;
+use crate::drivers::SerialPortDriver;
 use bytes::Bytes;
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{sync::Arc, time::Duration};
@@ -21,7 +21,7 @@ pub struct Runner {
     name: String,
 
     /// Driver instance
-    driver: Arc<Mutex<dyn PowerSupplyDriver + Send + Sync>>,
+    driver: Arc<Mutex<dyn SerialPortDriver + Send + Sync>>,
 
     /// psu/{name}/status
     topic_status: String,
@@ -55,7 +55,7 @@ impl Runner {
     /// Start the runner
     pub fn start(
         name: String,
-        driver: Arc<Mutex<dyn PowerSupplyDriver + Send + Sync>>,
+        driver: Arc<Mutex<dyn SerialPortDriver + Send + Sync>>,
     ) -> RunnerHandler {
         // Initialize MQTT client
         let mut mqttoptions = MqttOptions::new(
