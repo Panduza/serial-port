@@ -22,26 +22,13 @@ pub struct McpServerConfig {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PowerSupplyConfig {
+pub struct SerialPortConfig {
     /// Unique identifier for the power supply
     pub model: String,
 
     /// Optional description of the power supply
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-
-    /// Security limits for voltage
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub security_min_voltage: Option<f32>,
-    /// Security limits for voltage
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub security_max_voltage: Option<f32>,
-    /// Security limits for current
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub security_min_current: Option<f32>,
-    /// Security limits for current
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub security_max_current: Option<f32>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -56,7 +43,7 @@ pub struct GlobalConfig {
     pub broker: IPEndpointConfig,
 
     /// Power supply configurations, keyed by their unique identifiers
-    pub devices: Option<HashMap<String, PowerSupplyConfig>>,
+    pub devices: Option<HashMap<String, SerialPortConfig>>,
 }
 
 impl Default for GlobalConfig {

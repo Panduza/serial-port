@@ -20,6 +20,6 @@ pub trait SerialPortDriver: Send + Sync {
     /// Shutdown the driver
     async fn shutdown(&mut self) -> Result<(), DriverError>;
 
-    ///
+    /// Send bytes through the serial port
     async fn send(&mut self, bytes: Bytes) -> Result<(), DriverError>;
 }

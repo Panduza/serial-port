@@ -12,47 +12,31 @@ description = "Panduza Serial Port Server - MQTT broker and device management"
 # Trait for async functions in traits
 async-trait = { version = "0.1.89" }
 # ---
-# Error handling library
-thiserror = "2.0.17"
+# HTTP web framework
+axum = { version = "0.8", features = ["macros"] }
 # ---
-# Async runtime
-tokio = { version = "1.48.0", features = ["full"] }
-
-
-serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.107"
-
-tracing = "0.1.37"
-# Local dependencies
-
-pza-toolkit = { path = "../toolkit" }
-
-# Server-specific dependencies
+# Bytes manipulation utilities
+bytes = "1.10.1"
+# ---
+# Configuration management library
+config = "0.15.17"
+# ---
+# Cross-platform GUI framework
 dioxus = { version = "0.6.3", features = [] }
-dirs = "6.0.0"
-serde_json5 = "0.2.1"
+# ---
+# Logging for Dioxus applications
 dioxus-logger = "0.6.2"
-
+# ---
+# Platform-specific directory paths
+dirs = "6.0.0"
+# ---
+# Local dependencies - Panduza toolkit
+pza-toolkit = { path = "../toolkit" }
 # ---
 # Random string generator
 rand = "0.8.5"
 # ---
-# MQTT async client
-rumqttc = "0.25.0"
-# ---
-# MQTT Broker
-rumqttd = { git = "https://github.com/Panduza/rumqtt", tag = "0.1.0" }
-# ---
-# Config for rumqttd
-config = "0.15.17"
-# ---
-bytes = "1.10.1"
-# ---
-# KD3005P Driver
-# ka3005p = { version = "0.5.0" }
-ka3005p = { git = "https://github.com/XdoctorwhoZ/ka3005p", branch = "unitary_get_values" }
-# ---
-
+# Model Context Protocol implementation
 rmcp = { version = "0.7.0", features = [
     "server",
     "macros",
@@ -63,9 +47,38 @@ rmcp = { version = "0.7.0", features = [
     "elicitation",
     "schemars",
 ] }
-axum = { version = "0.8", features = ["macros"] }
-tower-http = { version = "0.6", features = ["cors"] }
+# ---
+# MQTT async client
+rumqttc = "0.25.0"
+# ---
+# MQTT Broker
+rumqttd = { git = "https://github.com/Panduza/rumqtt", tag = "0.1.0" }
+# ---
+# JSON schema generation
 schemars = "1.0"
+# ---
+# Serialization framework
+serde = { version = "1.0.188", features = ["derive"] }
+# ---
+# JSON serialization for serde
+serde_json = "1.0.107"
+# ---
+# JSON5 serialization for serde
+serde_json5 = "0.2.1"
+# ---
+# Error handling library
+thiserror = "2.0.17"
+# ---
+# Async runtime
+tokio = { version = "1.48.0", features = ["full"] }
+# ---
+# HTTP middleware and utilities
+tower-http = { version = "0.6", features = ["cors"] }
+# ---
+# Structured logging framework
+tracing = "0.1.37"
+# ---
+# Tracing subscriber for log formatting
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 [features]
