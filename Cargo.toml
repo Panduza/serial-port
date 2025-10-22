@@ -66,6 +66,12 @@ serde_json = "1.0.107"
 # JSON5 serialization for serde
 serde_json5 = "0.2.1"
 # ---
+# Serial port communication library
+serial2-tokio = "0.1.13"
+# ---
+# Just for the available port feature
+serialport = { version = "4.8.1" }
+# ---
 # Error handling library
 thiserror = "2.0.17"
 # ---

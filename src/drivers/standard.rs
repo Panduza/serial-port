@@ -7,13 +7,14 @@ use tracing::info;
 use crate::config::SerialPortConfig;
 use crate::drivers::DriverError;
 use crate::drivers::SerialPortDriver;
+use serial2_tokio::SerialPort;
 
 ///
 pub struct StandardDriver {
     /// Configuration
     config: SerialPortConfig,
     // The underlying driver instance
-    // driver: Option<Arc<Mutex<Ka3005p>>>,
+    driver: Option<Arc<Mutex<SerialPort>>>,
 }
 
 impl StandardDriver {
@@ -21,7 +22,7 @@ impl StandardDriver {
     pub fn new(config: SerialPortConfig) -> Self {
         Self {
             config,
-            // driver: None,
+            driver: None,
         }
     }
 
@@ -43,7 +44,14 @@ impl SerialPortDriver for StandardDriver {
         // info!("Kd3005p Driver: initialize");
         // let mut dev = ka3005p::find_serial_port().unwrap();
 
-        // self.driver = Some(Arc::new(Mutex::new(dev)));
+        //
+        let port = SerialPort::open("/dev/ttyUSB0", 115200).unwrap();
+        self.driver = Some(Arc::new(Mutex::new(port)));
+        // let mut buffer = [0; 256];
+        // loop {
+        //     let read = port.read(&mut buffer).await?;
+        //     port.write_all(&buffer[..read]).await?;
+        // }
 
         Ok(())
     }

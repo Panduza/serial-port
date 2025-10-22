@@ -42,15 +42,15 @@ impl Factory {
 
         // ----------------------------------------------------------
 
-        // factory.register_driver("kd3005p", |config| {
-        //     Arc::new(Mutex::new(crate::drivers::kd3005p::Kd3005pDriver::new(
-        //         config,
-        //     )))
-        // });
-        // factory.manifest.insert(
-        //     "kd3005p".to_string(),
-        //     crate::drivers::kd3005p::Kd3005pDriver::manifest(),
-        // );
+        factory.register_driver("standard", |config| {
+            Arc::new(Mutex::new(crate::drivers::standard::StandardDriver::new(
+                config,
+            )))
+        });
+        factory.manifest.insert(
+            "standard".to_string(),
+            crate::drivers::standard::StandardDriver::manifest(),
+        );
 
         // ----------------------------------------------------------
         factory
