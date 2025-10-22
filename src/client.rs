@@ -1,5 +1,5 @@
 use crate::config::GlobalConfig;
-use crate::config::MqttBrokerConfig;
+
 use bytes::Bytes;
 use rand::Rng;
 use rumqttc::{AsyncClient, MqttOptions};
@@ -9,11 +9,13 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-mod data;
-pub use data::MutableData;
+use pza_toolkit::config::IPEndpointConfig;
 
-mod error;
-pub use error::ClientError;
+// mod data;
+// pub use data::MutableData;
+
+// mod error;
+// pub use error::ClientError;
 
 use std::collections::HashMap;
 
@@ -98,16 +100,16 @@ fn psu_topic<A: Into<String>, B: Into<String>>(name: A, suffix: B) -> String {
     format!("power-supply/{}/{}", name.into(), suffix.into())
 }
 
-/// Builder pattern for creating PowerSupplyClient instances
-pub struct PowerSupplyClientBuilder {
+/// Builder pattern for creating SerialPortClient instances
+pub struct SerialPortClientBuilder {
     /// Name of the power supply unit
     pub psu_name: Option<String>,
 
     /// MQTT broker configuration
-    pub broker: MqttBrokerConfig,
+    pub broker: IPEndpointConfig,
 }
 
-impl PowerSupplyClientBuilder {
+impl SerialPortClientBuilder {
     /// Create a new builder from user configuration file
     pub fn from_user_config_file() -> Self {
         Self {
@@ -119,7 +121,7 @@ impl PowerSupplyClientBuilder {
     // ------------------------------------------------------------------------
 
     /// Create a new builder from broker configuration
-    pub fn from_broker_config(broker: MqttBrokerConfig) -> Self {
+    pub fn from_broker_config(broker: IPEndpointConfig) -> Self {
         Self {
             psu_name: None,
             broker,
@@ -136,30 +138,29 @@ impl PowerSupplyClientBuilder {
 
     // ------------------------------------------------------------------------
 
-    /// Build the PowerSupplyClient instance
-    pub fn build(self) -> PowerSupplyClient {
+    /// Build the SerialPortClient instance
+    pub fn build(self) -> SerialPortClient {
         // Initialize MQTT client
         let mut mqttoptions = MqttOptions::new(
             format!("rumqtt-sync-{}", generate_random_string(5)),
-            self.broker.host,
-            self.broker.port,
+            self.broker.addr.unwrap(),
+            self.broker.port.unwrap(),
         );
         mqttoptions.set_keep_alive(Duration::from_secs(3));
 
         let (client, event_loop) = AsyncClient::new(mqttoptions, 100);
 
-        PowerSupplyClient::new_with_client(self.psu_name.unwrap(), client, event_loop)
+        SerialPortClient::new_with_client(self.psu_name.unwrap(), client, event_loop)
     }
 }
 
 /// Client for interacting with a power supply via MQTT
-pub struct PowerSupplyClient {
+pub struct SerialPortClient {
     pub psu_name: String,
 
     mqtt_client: AsyncClient,
 
-    mutable_data: Arc<Mutex<MutableData>>,
-
+    // mutable_data: Arc<Mutex<MutableData>>,
     callbacks: Arc<Mutex<DynamicCallbacks>>,
 
     /// psu/{name}/control/oe
@@ -178,12 +179,12 @@ pub struct PowerSupplyClient {
     topic_control_current_cmd: String,
 }
 
-impl Clone for PowerSupplyClient {
+impl Clone for SerialPortClient {
     fn clone(&self) -> Self {
         Self {
             psu_name: self.psu_name.clone(),
             mqtt_client: self.mqtt_client.clone(),
-            mutable_data: Arc::clone(&self.mutable_data),
+            // mutable_data: Arc::clone(&self.mutable_data),
             callbacks: Arc::clone(&self.callbacks),
             topic_control_oe: self.topic_control_oe.clone(),
             topic_control_oe_cmd: self.topic_control_oe_cmd.clone(),
@@ -195,7 +196,7 @@ impl Clone for PowerSupplyClient {
     }
 }
 
-impl PowerSupplyClient {
+impl SerialPortClient {
     /// Subscribe to all relevant MQTT topics
     async fn subscribe_to_all(client: AsyncClient, topics: Vec<String>) {
         for topic in topics {
@@ -207,7 +208,7 @@ impl PowerSupplyClient {
     }
     /// Task loop to handle MQTT events and update client state
     async fn task_loop(
-        client: PowerSupplyClient,
+        client: SerialPortClient,
         mut event_loop: rumqttc::EventLoop,
         sub_topics: Vec<String>,
     ) {
@@ -257,57 +258,57 @@ impl PowerSupplyClient {
 
     /// Handle incoming MQTT messages and update internal state
     async fn handle_incoming_message(&self, topic: &String, payload: Bytes) {
-        if topic == &self.topic_control_oe {
-            let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-            let enabled = msg.trim().eq_ignore_ascii_case("ON");
+        // if topic == &self.topic_control_oe {
+        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
+        //     let enabled = msg.trim().eq_ignore_ascii_case("ON");
 
-            // Update internal state
-            {
-                let mut data = self.mutable_data.lock().await;
-                data.enabled = enabled;
-            }
+        //     // Update internal state
+        //     {
+        //         let mut data = self.mutable_data.lock().await;
+        //         data.enabled = enabled;
+        //     }
 
-            // Trigger all OE callbacks
-            let callbacks = self.callbacks.lock().await;
-            for callback in callbacks.oe_callbacks.values() {
-                callback(enabled).await;
-            }
-        } else if topic == &self.topic_control_voltage {
-            let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-            let voltage_str = msg.trim().to_string();
+        //     // Trigger all OE callbacks
+        //     let callbacks = self.callbacks.lock().await;
+        //     for callback in callbacks.oe_callbacks.values() {
+        //         callback(enabled).await;
+        //     }
+        // } else if topic == &self.topic_control_voltage {
+        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
+        //     let voltage_str = msg.trim().to_string();
 
-            // Update internal state
-            {
-                let mut data = self.mutable_data.lock().await;
-                data.voltage = voltage_str.clone();
-            }
+        //     // Update internal state
+        //     {
+        //         let mut data = self.mutable_data.lock().await;
+        //         data.voltage = voltage_str.clone();
+        //     }
 
-            // Trigger all voltage callbacks
-            let callbacks = self.callbacks.lock().await;
-            for callback in callbacks.voltage_callbacks.values() {
-                callback(voltage_str.clone()).await;
-            }
-        } else if topic == &self.topic_control_current {
-            let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-            let current_str = msg.trim().to_string();
+        //     // Trigger all voltage callbacks
+        //     let callbacks = self.callbacks.lock().await;
+        //     for callback in callbacks.voltage_callbacks.values() {
+        //         callback(voltage_str.clone()).await;
+        //     }
+        // } else if topic == &self.topic_control_current {
+        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
+        //     let current_str = msg.trim().to_string();
 
-            // Update internal state
-            {
-                let mut data = self.mutable_data.lock().await;
-                data.current = current_str.clone();
-            }
+        //     // Update internal state
+        //     {
+        //         let mut data = self.mutable_data.lock().await;
+        //         data.current = current_str.clone();
+        //     }
 
-            // Trigger all current callbacks
-            let callbacks = self.callbacks.lock().await;
-            for callback in callbacks.current_callbacks.values() {
-                callback(current_str.clone()).await;
-            }
-        }
+        //     // Trigger all current callbacks
+        //     let callbacks = self.callbacks.lock().await;
+        //     for callback in callbacks.current_callbacks.values() {
+        //         callback(current_str.clone()).await;
+        //     }
+        // }
     }
 
     // ------------------------------------------------------------------------
 
-    /// Create a new PowerSupplyClient with existing MQTT client and event loop
+    /// Create a new SerialPortClient with existing MQTT client and event loop
     pub fn new_with_client(
         psu_name: String,
         client: AsyncClient,
@@ -330,7 +331,7 @@ impl PowerSupplyClient {
             psu_name,
             mqtt_client: client,
 
-            mutable_data: Arc::new(Mutex::new(MutableData::default())),
+            // mutable_data: Arc::new(Mutex::new(MutableData::default())),
             callbacks: Arc::new(Mutex::new(DynamicCallbacks::default())),
 
             topic_control_oe,
@@ -358,27 +359,6 @@ impl PowerSupplyClient {
 
     // ------------------------------------------------------------------------
 
-    /// Get the current output enable state
-    pub async fn get_oe(&self) -> bool {
-        self.mutable_data.lock().await.enabled
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Get the current voltage setting
-    pub async fn get_voltage(&self) -> String {
-        self.mutable_data.lock().await.voltage.clone()
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Get the current current setting
-    pub async fn get_current(&self) -> String {
-        self.mutable_data.lock().await.current.clone()
-    }
-
-    // ------------------------------------------------------------------------
-
     /// Publish a message to a topic
     pub async fn publish<A: Into<String>>(
         &self,
@@ -391,60 +371,6 @@ impl PowerSupplyClient {
     }
 
     // ------------------------------------------------------------------------
-
-    /// Enable the power supply output
-    pub async fn enable_output(&self) -> Result<(), ClientError> {
-        let payload = Bytes::from("ON");
-        if let Err(e) = self
-            .publish(self.topic_control_oe_cmd.clone(), payload)
-            .await
-        {
-            return Err(ClientError::MqttError(e.to_string()));
-        }
-        Ok(())
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Disable the power supply output
-    pub async fn disable_output(&self) -> Result<(), ClientError> {
-        let payload = Bytes::from("OFF");
-        if let Err(e) = self
-            .publish(self.topic_control_oe_cmd.clone(), payload)
-            .await
-        {
-            return Err(ClientError::MqttError(e.to_string()));
-        }
-        Ok(())
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Set the voltage of the power supply
-    pub async fn set_voltage(&self, voltage: String) -> Result<(), ClientError> {
-        let payload = Bytes::from(voltage);
-        if let Err(e) = self
-            .publish(self.topic_control_voltage_cmd.clone(), payload)
-            .await
-        {
-            return Err(ClientError::MqttError(e.to_string()));
-        }
-        Ok(())
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Set the current limit of the power supply
-    pub async fn set_current(&self, current: String) -> Result<(), ClientError> {
-        let payload = Bytes::from(current);
-        if let Err(e) = self
-            .publish(self.topic_control_current_cmd.clone(), payload)
-            .await
-        {
-            return Err(ClientError::MqttError(e.to_string()));
-        }
-        Ok(())
-    }
 
     // ------------------------------------------------------------------------
     // Dynamic Callback Management

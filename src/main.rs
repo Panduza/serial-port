@@ -1,4 +1,4 @@
-mod broker;
+mod client;
 mod config;
 mod drivers;
 mod factory;
@@ -22,7 +22,7 @@ use tracing::subscriber::{set_global_default, SetGlobalDefaultError};
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub psu_names: Arc<Mutex<Vec<String>>>,
-    pub broker_config: Arc<Mutex<Option<panduza_serial_port_client::config::MqttBrokerConfig>>>,
+    pub broker_config: Arc<Mutex<Option<pza_toolkit::config::IPEndpointConfig>>>,
 }
 
 // Static storage for app state
@@ -129,7 +129,7 @@ async fn initialize_background_services(
     }
 
     // Start MQTT broker
-    let _broker_handle = broker::start(&config);
+    let _broker_handle = pza_toolkit::rumqtt::broker::start(&config.broker);
 
     // Initialize devices
     let mut psu_names = Vec::new();

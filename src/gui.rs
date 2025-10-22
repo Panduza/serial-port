@@ -1,19 +1,20 @@
 use dioxus::prelude::*;
-use panduza_serial_port_client::{PowerSupplyClient, PowerSupplyClientBuilder};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-mod button_power;
-mod config_button;
-mod current_setter;
-mod device_selector;
-mod voltage_setter;
+use crate::client::{SerialPortClient, SerialPortClientBuilder};
 
-use button_power::PowerButton;
-use config_button::ConfigButton;
-use current_setter::CurrentSetter;
-use device_selector::DeviceSelector;
-use voltage_setter::VoltageSetter;
+// mod button_power;
+// mod config_button;
+// mod current_setter;
+// mod device_selector;
+// mod voltage_setter;
+
+// use button_power::PowerButton;
+// use config_button::ConfigButton;
+// use current_setter::CurrentSetter;
+// use device_selector::DeviceSelector;
+// use voltage_setter::VoltageSetter;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
@@ -41,13 +42,13 @@ pub fn Gui() -> Element {
 
             header {
                 h1 {
-                    "Panduza Power Supply"
+                    "Panduza Serial Port"
                 }
             }
 
-            main {
-                PowerSupplyControl {}
-            }
+            // main {
+            //     PowerSupplyControl {}
+            // }
         }
     }
 }
@@ -61,7 +62,7 @@ pub fn PowerSupplyControl() -> Element {
     let mut current = use_signal(|| "0.0".to_string());
     let mut status_message = use_signal(|| "Ready".to_string());
     let mut psu_names = use_signal(|| Vec::<String>::new());
-    let mut psu_client: Signal<Option<Arc<Mutex<PowerSupplyClient>>>> = use_signal(|| None);
+    let mut psu_client: Signal<Option<Arc<Mutex<SerialPortClient>>>> = use_signal(|| None);
 
     // Load PSU names from app state
     {
@@ -96,7 +97,7 @@ pub fn PowerSupplyControl() -> Element {
                 spawn(async move {
                     let broker_config = broker_config_arc.lock().await;
                     if let Some(config) = broker_config.as_ref() {
-                        let client = PowerSupplyClientBuilder::from_broker_config(config.clone())
+                        let client = SerialPortClientBuilder::from_broker_config(config.clone())
                             .with_power_supply_name(selected.clone())
                             .build();
 
@@ -113,13 +114,13 @@ pub fn PowerSupplyControl() -> Element {
         if let Some(client_arc) = psu_client() {
             spawn(async move {
                 let client = client_arc.lock().await;
-                let enabled = client.get_oe().await;
-                let volt = client.get_voltage().await;
-                let curr = client.get_current().await;
+                // let enabled = client.get_oe().await;
+                // let volt = client.get_voltage().await;
+                // let curr = client.get_current().await;
 
-                output_enabled.set(enabled);
-                voltage.set(volt);
-                current.set(curr);
+                // output_enabled.set(enabled);
+                // voltage.set(volt);
+                // current.set(curr);
             });
         }
     };
@@ -170,14 +171,14 @@ pub fn PowerSupplyControl() -> Element {
             }
 
             // PSU Selection Card - Using DeviceSelector component
-            DeviceSelector {
-                selected_device: selected_psu(),
-                device_names: psu_names(),
-                on_device_changed: on_device_changed,
-            }
+            // DeviceSelector {
+            //     selected_device: selected_psu(),
+            //     device_names: psu_names(),
+            //     on_device_changed: on_device_changed,
+            // }
 
             // Configuration Button
-            ConfigButton {}
+            // ConfigButton {}
 
             if psu_names().is_empty() {
                 // No PSUs available message
@@ -203,38 +204,38 @@ pub fn PowerSupplyControl() -> Element {
                     class: "control-grid",
 
                     // Output Control Card - Using PowerButton component
-                    div {
-                        PowerButton {
-                            output_enabled: output_enabled(),
-                            psu_client: psu_client(),
-                            on_output_changed: on_output_changed,
-                            on_status_message: on_status_message,
-                        }
-                    }
+                    // div {
+                    //     PowerButton {
+                    //         output_enabled: output_enabled(),
+                    //         psu_client: psu_client(),
+                    //         on_output_changed: on_output_changed,
+                    //         on_status_message: on_status_message,
+                    //     }
+                    // }
 
                     // Voltage and Current Control Card
                     div {
                         class: "glass-card",
 
-                        div {
-                            class: "space-y-6",
+                        // div {
+                        //     class: "space-y-6",
 
-                            // Voltage Control Component
-                            VoltageSetter {
-                                voltage: voltage(),
-                                psu_client: psu_client(),
-                                on_voltage_changed: on_voltage_changed,
-                                on_status_message: on_status_message,
-                            }
+                        //     // Voltage Control Component
+                        //     VoltageSetter {
+                        //         voltage: voltage(),
+                        //         psu_client: psu_client(),
+                        //         on_voltage_changed: on_voltage_changed,
+                        //         on_status_message: on_status_message,
+                        //     }
 
-                            // Current Control Component
-                            CurrentSetter {
-                                current: current(),
-                                psu_client: psu_client(),
-                                on_current_changed: on_current_changed,
-                                on_status_message: on_status_message,
-                            }
-                        }
+                        //     // Current Control Component
+                        //     CurrentSetter {
+                        //         current: current(),
+                        //         psu_client: psu_client(),
+                        //         on_current_changed: on_current_changed,
+                        //         on_status_message: on_status_message,
+                        //     }
+                        // }
                     }
                 }
             }

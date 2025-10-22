@@ -1,5 +1,5 @@
 pub mod emulator;
-pub mod kd3005p;
+pub mod standard;
 
 use async_trait::async_trait;
 use bytes::Bytes;

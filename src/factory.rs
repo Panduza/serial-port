@@ -42,15 +42,15 @@ impl Factory {
 
         // ----------------------------------------------------------
 
-        factory.register_driver("kd3005p", |config| {
-            Arc::new(Mutex::new(crate::drivers::kd3005p::Kd3005pDriver::new(
-                config,
-            )))
-        });
-        factory.manifest.insert(
-            "kd3005p".to_string(),
-            crate::drivers::kd3005p::Kd3005pDriver::manifest(),
-        );
+        // factory.register_driver("kd3005p", |config| {
+        //     Arc::new(Mutex::new(crate::drivers::kd3005p::Kd3005pDriver::new(
+        //         config,
+        //     )))
+        // });
+        // factory.manifest.insert(
+        //     "kd3005p".to_string(),
+        //     crate::drivers::kd3005p::Kd3005pDriver::manifest(),
+        // );
 
         // ----------------------------------------------------------
         factory
@@ -79,7 +79,7 @@ impl Factory {
     /// Write the manifest data to the factory manifest file
     pub fn write_manifest_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Ensure the user root directory exists
-        panduza_toolkit::path::ensure_user_root_dir_exists()?;
+        pza_toolkit::path::ensure_user_root_dir_exists()?;
 
         // Get the factory manifest file path
         let manifest_file_path = crate::path::factory_manifest_file()

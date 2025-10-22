@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
 
-use panduza_serial_port_client::PowerSupplyClient;
-use panduza_serial_port_client::PowerSupplyClientBuilder;
+use crate::client::SerialPortClient;
+use crate::client::SerialPortClientBuilder;
 
 use crate::config::GlobalConfig;
 
@@ -36,7 +36,7 @@ struct CurrentParams {
 
 #[derive(Clone)]
 struct PowerSupplyState {
-    client: PowerSupplyClient,
+    client: SerialPortClient,
 }
 
 /// Service structure that handles MCP protocol interactions and manages
@@ -58,7 +58,7 @@ impl PowerSupplyService {
     //--------------------------------------------------------------------------
 
     pub fn new(config: GlobalConfig, psu_name: String) -> Self {
-        let client = PowerSupplyClientBuilder::from_broker_config(config.broker.clone())
+        let client = SerialPortClientBuilder::from_broker_config(config.broker.clone())
             .with_power_supply_name(psu_name.clone())
             .build();
         debug!("Client initialized");
@@ -90,82 +90,82 @@ impl PowerSupplyService {
 
     //--------------------------------------------------------------------------
 
-    /// Enable the power supply output
-    #[tool(description = "Enable the power supply output (turn on power)")]
-    async fn output_enable(&self) -> Result<CallToolResult, McpError> {
-        let client = {
-            let psu_state = self.state.lock().await;
-            psu_state.client.clone()
-        };
+    // /// Enable the power supply output
+    // #[tool(description = "Enable the power supply output (turn on power)")]
+    // async fn output_enable(&self) -> Result<CallToolResult, McpError> {
+    //     let client = {
+    //         let psu_state = self.state.lock().await;
+    //         psu_state.client.clone()
+    //     };
 
-        client.enable_output().await.map_err(|_e| {
-            McpError::new(
-                ErrorCode::INTERNAL_ERROR,
-                "Failed to enable power supply output",
-                None,
-            )
-        })?;
+    //     client.enable_output().await.map_err(|_e| {
+    //         McpError::new(
+    //             ErrorCode::INTERNAL_ERROR,
+    //             "Failed to enable power supply output",
+    //             None,
+    //         )
+    //     })?;
 
-        info!("Successfully enabled power supply output");
-        Ok(CallToolResult::success(vec![Content::text(
-            "Power supply output enabled".to_string(),
-        )]))
-    }
-
-    //--------------------------------------------------------------------------
-
-    /// Disable the power supply output
-    #[tool(description = "Disable the power supply output (turn off power)")]
-    async fn output_disable(&self) -> Result<CallToolResult, McpError> {
-        let client = {
-            let psu_state = self.state.lock().await;
-            psu_state.client.clone()
-        };
-
-        client.disable_output().await.map_err(|_e| {
-            McpError::new(
-                ErrorCode::INTERNAL_ERROR,
-                "Failed to disable power supply output",
-                None,
-            )
-        })?;
-
-        info!("Successfully disabled power supply output");
-        Ok(CallToolResult::success(vec![Content::text(
-            "Power supply output disabled".to_string(),
-        )]))
-    }
+    //     info!("Successfully enabled power supply output");
+    //     Ok(CallToolResult::success(vec![Content::text(
+    //         "Power supply output enabled".to_string(),
+    //     )]))
+    // }
 
     //--------------------------------------------------------------------------
 
-    /// Set the output voltage of the power supply
-    #[tool(
-        description = "Set the output voltage of the power supply. Takes voltage as a string, e.g., '5.0'"
-    )]
-    async fn set_voltage(
-        &self,
-        params: Parameters<VoltageParams>,
-    ) -> Result<CallToolResult, McpError> {
-        let voltage = &params.0.voltage;
-        let client = {
-            let psu_state = self.state.lock().await;
-            psu_state.client.clone()
-        };
+    // /// Disable the power supply output
+    // #[tool(description = "Disable the power supply output (turn off power)")]
+    // async fn output_disable(&self) -> Result<CallToolResult, McpError> {
+    //     let client = {
+    //         let psu_state = self.state.lock().await;
+    //         psu_state.client.clone()
+    //     };
 
-        client.set_voltage(voltage.clone()).await.map_err(|_e| {
-            McpError::new(
-                ErrorCode::INTERNAL_ERROR,
-                "Failed to set power supply voltage",
-                None,
-            )
-        })?;
+    //     client.disable_output().await.map_err(|_e| {
+    //         McpError::new(
+    //             ErrorCode::INTERNAL_ERROR,
+    //             "Failed to disable power supply output",
+    //             None,
+    //         )
+    //     })?;
 
-        info!("Successfully set power supply voltage to {}", voltage);
-        Ok(CallToolResult::success(vec![Content::text(format!(
-            "Power supply voltage set to {}",
-            voltage
-        ))]))
-    }
+    //     info!("Successfully disabled power supply output");
+    //     Ok(CallToolResult::success(vec![Content::text(
+    //         "Power supply output disabled".to_string(),
+    //     )]))
+    // }
+
+    //--------------------------------------------------------------------------
+
+    // /// Set the output voltage of the power supply
+    // #[tool(
+    //     description = "Set the output voltage of the power supply. Takes voltage as a string, e.g., '5.0'"
+    // )]
+    // async fn set_voltage(
+    //     &self,
+    //     params: Parameters<VoltageParams>,
+    // ) -> Result<CallToolResult, McpError> {
+    //     let voltage = &params.0.voltage;
+    //     let client = {
+    //         let psu_state = self.state.lock().await;
+    //         psu_state.client.clone()
+    //     };
+
+    //     client.set_voltage(voltage.clone()).await.map_err(|_e| {
+    //         McpError::new(
+    //             ErrorCode::INTERNAL_ERROR,
+    //             "Failed to set power supply voltage",
+    //             None,
+    //         )
+    //     })?;
+
+    //     info!("Successfully set power supply voltage to {}", voltage);
+    //     Ok(CallToolResult::success(vec![Content::text(format!(
+    //         "Power supply voltage set to {}",
+    //         voltage
+    //     ))]))
+    // }
 
     /// Set the output current limit of the power supply
     #[tool(
@@ -181,13 +181,13 @@ impl PowerSupplyService {
             psu_state.client.clone()
         };
 
-        client.set_current(current.clone()).await.map_err(|_e| {
-            McpError::new(
-                ErrorCode::INTERNAL_ERROR,
-                "Failed to set power supply current limit",
-                None,
-            )
-        })?;
+        // client.set_current(current.clone()).await.map_err(|_e| {
+        //     McpError::new(
+        //         ErrorCode::INTERNAL_ERROR,
+        //         "Failed to set power supply current limit",
+        //         None,
+        //     )
+        // })?;
 
         info!("Successfully set power supply current limit to {}", current);
         Ok(CallToolResult::success(vec![Content::text(format!(

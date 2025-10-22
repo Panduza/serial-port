@@ -1,10 +1,9 @@
+use pza_toolkit::config::IPEndpointConfig;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info};
-
-use panduza_serial_port_client::config::MqttBrokerConfig;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GuiConfig {
@@ -54,7 +53,7 @@ pub struct GlobalConfig {
     pub mcp: McpServerConfig,
 
     /// MQTT broker configuration
-    pub broker: MqttBrokerConfig,
+    pub broker: IPEndpointConfig,
 
     /// Power supply configurations, keyed by their unique identifiers
     pub devices: Option<HashMap<String, PowerSupplyConfig>>,
@@ -69,9 +68,9 @@ impl Default for GlobalConfig {
                 host: "127.0.0.1".to_string(),
                 port: 50051,
             },
-            broker: MqttBrokerConfig {
-                host: "127.0.0.1".to_string(),
-                port: 1883,
+            broker: IPEndpointConfig {
+                addr: Some("127.0.0.1".to_string()),
+                port: Some(1883),
             },
             devices: None,
         }
@@ -122,7 +121,7 @@ impl GlobalConfig {
     ///
     fn generate_default_config(config_path: &Path) -> Self {
         // Ensure the user root directory exists
-        if let Err(err) = panduza_toolkit::path::ensure_user_root_dir_exists() {
+        if let Err(err) = pza_toolkit::path::ensure_user_root_dir_exists() {
             panic!("Failed to create user root directory: {}", err);
         }
 
