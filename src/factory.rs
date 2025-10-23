@@ -55,9 +55,6 @@ impl Factory {
             "standard".to_string(),
             crate::drivers::standard::StandardDriver::manifest(),
         );
-
-        // ----------------------------------------------------------
-
         factory.scanner.insert(
             "standard".to_string(),
             crate::drivers::standard::StandardDriver::scan,
@@ -85,6 +82,43 @@ impl Factory {
         } else {
             Err(FactoryError::NoDriver(config.model))
         }
+    }
+
+    /// Scan for available devices
+    pub fn scan(&self) -> Vec<SerialPortConfig> {
+        let mut result = Vec::new();
+
+        for (_model, scanner) in &self.scanner {
+            let mut scanned = scanner();
+            result.append(&mut scanned);
+        }
+
+        result
+    }
+
+    pub fn write_scan_results_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+        // Ensure the user root directory exists
+        pza_toolkit::path::ensure_user_root_dir_exists()?;
+
+        // Get the factory scan results file path
+        let scan_file_path =
+            crate::path::scan_file().ok_or("Unable to determine factory scan results file path")?;
+
+        info!(
+            "Writing factory scan results to: {}",
+            scan_file_path.display()
+        );
+
+        // Scan for devices
+        let scan_results = self.scan();
+
+        // Serialize the scan results to pretty JSON
+        let json_content = serde_json::to_string_pretty(&scan_results)?;
+
+        // Write to file
+        std::fs::write(scan_file_path, json_content)?;
+
+        Ok(())
     }
 
     /// Write the manifest data to the factory manifest file

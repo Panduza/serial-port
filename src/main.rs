@@ -121,6 +121,11 @@ async fn initialize_background_services(
     let factory = factory::Factory::new();
     debug!("Factory initialized with drivers: {:?}", factory.map.keys());
 
+    //
+    factory.write_scan_results_to_file().unwrap_or_else(|err| {
+        error!("Failed to write factory scan results: {}", err);
+    });
+
     // Write factory manifest to file
     if let Err(err) = factory.write_manifest_to_file() {
         error!("Failed to write factory manifest: {}", err);
