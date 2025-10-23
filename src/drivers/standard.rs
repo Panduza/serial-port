@@ -44,6 +44,7 @@ impl StandardDriver {
         let mut result = Vec::new();
 
         serialport::available_ports().unwrap().iter().for_each(|p| {
+            let mut name = Some(p.port_name.clone());
             let mut usb = None;
 
             match &p.port_type {
@@ -53,6 +54,8 @@ impl StandardDriver {
                         pid: Some(usb_info.pid),
                         serial: usb_info.serial_number.clone(),
                     });
+                    // name not required when usb config is provided
+                    name = None;
                 }
                 _ => {}
             }
@@ -62,7 +65,7 @@ impl StandardDriver {
                 model: "standard".to_string(),
                 description: None,
                 endpoint: Some(crate::config::SerialPortEndpointConfig {
-                    name: Some(p.port_name.clone()),
+                    name: name,
                     usb: usb,
                     baud_rate: Some(115200),
                 }),
