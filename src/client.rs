@@ -73,20 +73,8 @@ pub struct SerialPortClient {
     //
     rx_channel: (broadcast::Sender<Bytes>, broadcast::Receiver<Bytes>),
 
-    /// psu/{name}/control/oe
-    topic_control_oe: String,
-    /// psu/{name}/control/oe/cmd
-    topic_control_oe_cmd: String,
-
-    /// psu/{name}/control/voltage
-    topic_control_voltage: String,
-    /// psu/{name}/control/voltage/cmd
-    topic_control_voltage_cmd: String,
-
-    /// psu/{name}/control/current
-    topic_control_current: String,
-    /// psu/{name}/control/current/cmd
-    topic_control_current_cmd: String,
+    ///
+    topic_rx: String,
 }
 
 impl Clone for SerialPortClient {
@@ -94,13 +82,8 @@ impl Clone for SerialPortClient {
         Self {
             psu_name: self.psu_name.clone(),
             mqtt_client: self.mqtt_client.clone(),
-            // mutable_data: Arc::clone(&self.mutable_data),
-            topic_control_oe: self.topic_control_oe.clone(),
-            topic_control_oe_cmd: self.topic_control_oe_cmd.clone(),
-            topic_control_voltage: self.topic_control_voltage.clone(),
-            topic_control_voltage_cmd: self.topic_control_voltage_cmd.clone(),
-            topic_control_current: self.topic_control_current.clone(),
-            topic_control_current_cmd: self.topic_control_current_cmd.clone(),
+            rx_channel: (self.rx_channel.0.clone(), self.rx_channel.1.resubscribe()),
+            topic_rx: self.topic_rx.clone(),
         }
     }
 }
@@ -237,38 +220,20 @@ impl SerialPortClient {
             ),
         );
 
-        // Prepare MQTT topics
-        let topic_control_oe = cccc.topic_with_prefix("control/oe");
-        let topic_control_oe_cmd = cccc.topic_with_prefix("control/oe/cmd");
-        // let topic_control_oe_error = cccc.topic_with_prefix("control/oe/error");
-        let topic_control_voltage = cccc.topic_with_prefix("control/voltage");
-        let topic_control_voltage_cmd = cccc.topic_with_prefix("control/voltage/cmd");
-        let topic_control_current = cccc.topic_with_prefix("control/current");
-        let topic_control_current_cmd = cccc.topic_with_prefix("control/current/cmd");
+        let (channel_tx, channel_rx) = broadcast::channel(32);
 
         let obj = Self {
             psu_name,
+            topic_rx: cccc.topic_with_prefix("rx"),
             mqtt_client: cccc,
 
-            topic_control_oe,
-            topic_control_oe_cmd,
-            // topic_control_oe_error,
-            topic_control_voltage,
-            topic_control_voltage_cmd,
-            topic_control_current,
-            topic_control_current_cmd,
-            // topic_measure_voltage_refresh_freq,
-            // topic_measure_current_refresh_freq,
+            rx_channel: (channel_tx, channel_rx),
         };
 
         let _task_handler = tokio::spawn(Self::task_loop(
             obj.clone(),
             event_loop,
-            vec![
-                obj.topic_control_oe.clone(),
-                obj.topic_control_voltage.clone(),
-                obj.topic_control_current.clone(),
-            ],
+            vec![obj.topic_rx.clone()],
         ));
         obj
     }
