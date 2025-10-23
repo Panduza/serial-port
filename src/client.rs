@@ -3,11 +3,6 @@ use crate::config::GlobalConfig;
 use bytes::Bytes;
 use rand::Rng;
 use rumqttc::{AsyncClient, MqttOptions};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::Mutex;
 
 use pza_toolkit::config::IPEndpointConfig;
 use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
@@ -18,13 +13,6 @@ use pza_toolkit::rumqtt_init::rumqtt_init_client;
 
 // mod error;
 // pub use error::ClientError;
-
-use std::collections::HashMap;
-
-/// Generate MQTT topic for a given power supply and suffix
-fn psu_topic<A: Into<String>, B: Into<String>>(name: A, suffix: B) -> String {
-    format!("power-supply/{}/{}", name.into(), suffix.into())
-}
 
 /// Builder pattern for creating SerialPortClient instances
 pub struct SerialPortClientBuilder {
@@ -76,8 +64,12 @@ impl SerialPortClientBuilder {
 pub struct SerialPortClient {
     pub psu_name: String,
 
-    mqtt_client: AsyncClient,
+    mqtt_client: RumqttCustomAsyncClient,
 
+    // send ok
+    // receive => channel for real time notifications
+    // data buffering (with a size) to allow AI to query recent data
+    //
     /// psu/{name}/control/oe
     topic_control_oe: String,
     /// psu/{name}/control/oe/cmd
@@ -127,7 +119,10 @@ impl SerialPortClient {
         sub_topics: Vec<String>,
     ) {
         // Subscribe to all relevant topics
-        Self::subscribe_to_all(client.mqtt_client.clone(), sub_topics.clone()).await;
+        client
+            .mqtt_client
+            .subscribe_to_all(sub_topics.clone())
+            .await;
 
         loop {
             while let Ok(event) = event_loop.poll().await {
@@ -228,22 +223,29 @@ impl SerialPortClient {
         client: AsyncClient,
         event_loop: rumqttc::EventLoop,
     ) -> Self {
+        let cccc = RumqttCustomAsyncClient::new(
+            client,
+            rumqttc::QoS::AtMostOnce,
+            true,
+            format!(
+                "{}/{}",
+                crate::constant::MQTT_TOPIC_PREFIX,
+                psu_name.clone()
+            ),
+        );
+
         // Prepare MQTT topics
-        let topic_control_oe = psu_topic(psu_name.clone(), "control/oe");
-        let topic_control_oe_cmd = psu_topic(psu_name.clone(), "control/oe/cmd");
-        // let topic_control_oe_error = psu_topic(psu_name.clone(), "control/oe/error");
-        let topic_control_voltage = psu_topic(psu_name.clone(), "control/voltage");
-        let topic_control_voltage_cmd = psu_topic(psu_name.clone(), "control/voltage/cmd");
-        let topic_control_current = psu_topic(psu_name.clone(), "control/current");
-        let topic_control_current_cmd = psu_topic(psu_name.clone(), "control/current/cmd");
-        // let topic_measure_voltage_refresh_freq =
-        //     psu_topic(psu_name.clone(), "measure/voltage/refresh_freq");
-        // let topic_measure_current_refresh_freq =
-        //     psu_topic(psu_name.clone(), "measure/current/refresh_freq");
+        let topic_control_oe = cccc.topic_with_prefix("control/oe");
+        let topic_control_oe_cmd = cccc.topic_with_prefix("control/oe/cmd");
+        // let topic_control_oe_error = cccc.topic_with_prefix("control/oe/error");
+        let topic_control_voltage = cccc.topic_with_prefix("control/voltage");
+        let topic_control_voltage_cmd = cccc.topic_with_prefix("control/voltage/cmd");
+        let topic_control_current = cccc.topic_with_prefix("control/current");
+        let topic_control_current_cmd = cccc.topic_with_prefix("control/current/cmd");
 
         let obj = Self {
             psu_name,
-            mqtt_client: client,
+            mqtt_client: cccc,
 
             topic_control_oe,
             topic_control_oe_cmd,
@@ -266,19 +268,6 @@ impl SerialPortClient {
             ],
         ));
         obj
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Publish a message to a topic
-    pub async fn publish<A: Into<String>>(
-        &self,
-        topic: A,
-        payload: Bytes,
-    ) -> Result<(), rumqttc::ClientError> {
-        self.mqtt_client
-            .publish(topic.into(), rumqttc::QoS::AtLeastOnce, false, payload)
-            .await
     }
 
     // ------------------------------------------------------------------------
