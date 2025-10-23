@@ -7,6 +7,7 @@ use rumqttc::{AsyncClient, MqttOptions};
 use pza_toolkit::config::IPEndpointConfig;
 use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
 use pza_toolkit::rumqtt_init::rumqtt_init_client;
+use tokio::sync::broadcast;
 
 // mod data;
 // pub use data::MutableData;
@@ -70,6 +71,8 @@ pub struct SerialPortClient {
     // receive => channel for real time notifications
     // data buffering (with a size) to allow AI to query recent data
     //
+    rx_channel: (broadcast::Sender<Bytes>, broadcast::Receiver<Bytes>),
+
     /// psu/{name}/control/oe
     topic_control_oe: String,
     /// psu/{name}/control/oe/cmd
