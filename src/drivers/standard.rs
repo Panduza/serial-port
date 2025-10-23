@@ -151,6 +151,42 @@ impl SerialPortDriver for StandardDriver {
             port_name, baud_rate
         );
 
+        // Spawn a task for continuous reading from the serial port
+        if let (Some(driver), Some(client)) = (self.driver.clone(), self.client.clone()) {
+            tokio::spawn(async move {
+                let mut buffer = [0u8; 1024];
+                loop {
+                    // Lock the driver to read from the serial port
+                    let mut read_result = {
+                        let mut port = driver.lock().await;
+                        use tokio::io::AsyncReadExt;
+                        port.read(&mut buffer).await
+                    };
+
+                    match read_result {
+                        Ok(bytes_read) if bytes_read > 0 => {
+                            // Convert the read data to bytes and publish via MQTT
+                            let data = bytes::Bytes::copy_from_slice(&buffer[..bytes_read]);
+                            let topic = client.topic_with_prefix("rx");
+
+                            if let Err(e) = client.publish(topic, data.to_vec()).await {
+                                tracing::error!("Failed to publish serial data to MQTT: {}", e);
+                            }
+                        }
+                        Ok(_) => {
+                            // No data read, continue loop
+                            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                        }
+                        Err(e) => {
+                            tracing::error!("Error reading from serial port: {}", e);
+                            // Sleep before retrying to avoid busy loop
+                            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                        }
+                    }
+                }
+            });
+        }
+
         Ok(())
     }
     /// Shutdown the driver

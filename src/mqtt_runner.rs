@@ -102,7 +102,7 @@ impl Runner {
                 client.clone(),
                 rumqttc::QoS::AtMostOnce,
                 false,
-                format!("power-supply/{}", runner.name),
+                format!("{}/{}", crate::constant::MQTT_TOPIC_PREFIX, runner.name),
             ));
 
         // Subscribe to all relevant topics
