@@ -7,6 +7,8 @@ use tokio::sync::Mutex;
 pub mod helper;
 use helper::{generate_random_string, psu_topic};
 
+use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
+
 /// Handler for the MQTT Runner task
 pub struct RunnerHandler {
     /// Task handler
@@ -92,6 +94,16 @@ impl Runner {
 
     /// The main async task loop for the MQTT runner
     async fn task_loop(client: AsyncClient, mut event_loop: rumqttc::EventLoop, runner: Runner) {
+        runner
+            .driver
+            .lock()
+            .await
+            .set_client(RumqttCustomAsyncClient::new(
+                client.clone(),
+                rumqttc::QoS::AtMostOnce,
+                false,
+            ));
+
         // Subscribe to all relevant topics
         Self::subscribe_to_all(
             client.clone(),

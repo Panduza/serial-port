@@ -3,6 +3,7 @@ pub mod standard;
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
 use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug, Clone)]
@@ -22,4 +23,8 @@ pub trait SerialPortDriver: Send + Sync {
 
     /// Send bytes through the serial port
     async fn send(&mut self, bytes: Bytes) -> Result<(), DriverError>;
+
+    /// Set the MQTT client
+    ///
+    fn set_client(&mut self, client: RumqttCustomAsyncClient);
 }

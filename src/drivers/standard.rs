@@ -10,12 +10,15 @@ use crate::drivers::SerialPortDriver;
 use serial2_tokio::SerialPort;
 
 use pza_toolkit::config::UsbEndpointConfig;
+use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
 ///
 pub struct StandardDriver {
     /// Configuration
     config: SerialPortConfig,
     // The underlying driver instance
     driver: Option<Arc<Mutex<SerialPort>>>,
+
+    client: Option<RumqttCustomAsyncClient>,
 }
 
 impl StandardDriver {
@@ -24,6 +27,7 @@ impl StandardDriver {
         Self {
             config,
             driver: None,
+            client: None,
         }
     }
 
@@ -157,5 +161,11 @@ impl SerialPortDriver for StandardDriver {
 
     async fn send(&mut self, _bytes: bytes::Bytes) -> Result<(), DriverError> {
         Ok(())
+    }
+
+    /// Set the MQTT client
+    ///
+    fn set_client(&mut self, client: RumqttCustomAsyncClient) {
+        self.client = Some(client);
     }
 }

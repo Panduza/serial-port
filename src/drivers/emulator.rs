@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 
+use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
 use tracing::info;
 
 use crate::config::SerialPortConfig;
@@ -8,21 +9,13 @@ use crate::drivers::SerialPortDriver;
 
 /// A power supply emulator for testing and development purposes
 pub struct PowerSupplyEmulator {
-    state_oe: bool,
-    #[allow(dead_code)]
-    voltage: String,
-    #[allow(dead_code)]
-    current: String,
+    client: Option<RumqttCustomAsyncClient>,
 }
 
 impl PowerSupplyEmulator {
     /// Create a new power supply emulator instance
     pub fn new(config: SerialPortConfig) -> Self {
-        Self {
-            state_oe: false,
-            voltage: "0".into(),
-            current: "0".into(),
-        }
+        Self { client: None }
     }
 
     //--------------------------------------------------------------------------
@@ -52,5 +45,10 @@ impl SerialPortDriver for PowerSupplyEmulator {
     /// Send data to the power supply
     async fn send(&mut self, _bytes: bytes::Bytes) -> Result<(), DriverError> {
         Ok(())
+    }
+
+    /// Set the MQTT client
+    fn set_client(&mut self, client: pza_toolkit::rumqtt_client::RumqttCustomAsyncClient) {
+        self.client = Some(client);
     }
 }
