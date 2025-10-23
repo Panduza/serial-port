@@ -1,3 +1,4 @@
+use rand::{distributions::Alphanumeric, Rng};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error as ThisError;
 use tokio::sync::Mutex;
@@ -85,12 +86,20 @@ impl Factory {
     }
 
     /// Scan for available devices
-    pub fn scan(&self) -> Vec<SerialPortConfig> {
-        let mut result = Vec::new();
+    pub fn scan(&self) -> HashMap<String, SerialPortConfig> {
+        let mut result = HashMap::new();
 
         for (_model, scanner) in &self.scanner {
-            let mut scanned = scanner();
-            result.append(&mut scanned);
+            let scanned = scanner();
+            for config in scanned {
+                // Generate a random 10-character string as key
+                let random_key: String = rand::thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(10)
+                    .map(char::from)
+                    .collect();
+                result.insert(random_key, config);
+            }
         }
 
         result
