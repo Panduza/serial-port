@@ -1,4 +1,4 @@
-use pza_toolkit::config::IPEndpointConfig;
+pub use pza_toolkit::config::{IPEndpointConfig, SerialPortEndpointConfig};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
@@ -29,6 +29,10 @@ pub struct SerialPortConfig {
     /// Optional description of the power supply
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+
+    /// Serial port configuration
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<SerialPortEndpointConfig>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

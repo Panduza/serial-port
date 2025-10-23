@@ -19,6 +19,9 @@ pub struct Factory {
 
     /// The manifest of available power supply devices
     pub manifest: HashMap<String, serde_json::Value>,
+
+    /// The scanner for available devices
+    pub scanner: HashMap<String, fn() -> Vec<SerialPortConfig>>,
 }
 
 impl Factory {
@@ -27,6 +30,7 @@ impl Factory {
         let mut factory = Self {
             map: HashMap::new(),
             manifest: HashMap::new(),
+            scanner: HashMap::new(),
         };
 
         // ----------------------------------------------------------
@@ -50,6 +54,13 @@ impl Factory {
         factory.manifest.insert(
             "standard".to_string(),
             crate::drivers::standard::StandardDriver::manifest(),
+        );
+
+        // ----------------------------------------------------------
+
+        factory.scanner.insert(
+            "standard".to_string(),
+            crate::drivers::standard::StandardDriver::scan,
         );
 
         // ----------------------------------------------------------

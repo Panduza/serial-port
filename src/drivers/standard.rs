@@ -9,6 +9,7 @@ use crate::drivers::DriverError;
 use crate::drivers::SerialPortDriver;
 use serial2_tokio::SerialPort;
 
+use pza_toolkit::config::UsbEndpointConfig;
 ///
 pub struct StandardDriver {
     /// Configuration
@@ -34,6 +35,41 @@ impl StandardDriver {
             "model": "standard",
             "description": "A ",
         })
+    }
+
+    //--------------------------------------------------------------------------
+
+    /// Scan for available devices
+    pub fn scan() -> Vec<SerialPortConfig> {
+        let mut result = Vec::new();
+
+        serialport::available_ports().unwrap().iter().for_each(|p| {
+            let mut usb = None;
+
+            match &p.port_type {
+                serialport::SerialPortType::UsbPort(usb_info) => {
+                    usb = Some(UsbEndpointConfig {
+                        vid: Some(usb_info.vid),
+                        pid: Some(usb_info.pid),
+                        serial: usb_info.serial_number.clone(),
+                    });
+                }
+                _ => {}
+            }
+
+            println!("Found port: {}", p.port_name);
+            result.push(SerialPortConfig {
+                model: "standard".to_string(),
+                description: None,
+                endpoint: Some(crate::config::SerialPortEndpointConfig {
+                    name: Some(p.port_name.clone()),
+                    usb: usb,
+                    baud_rate: Some(115200),
+                }),
+            });
+        });
+
+        result
     }
 }
 
