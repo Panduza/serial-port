@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use std::process::Command;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -19,6 +20,28 @@ use crate::client::{SerialPortClient, SerialPortClientBuilder};
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+
+/// Ouvre le dossier de configuration .panduza dans l'explorateur de fichiers
+fn open_config_folder() {
+    if let Some(config_dir) = pza_toolkit::path::user_root_dir() {
+        let path = config_dir.to_string_lossy().to_string();
+
+        #[cfg(target_os = "windows")]
+        {
+            let _ = Command::new("explorer").arg(&path).spawn();
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            let _ = Command::new("open").arg(&path).spawn();
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let _ = Command::new("xdg-open").arg(&path).spawn();
+        }
+    }
+}
 
 #[component]
 pub fn Gui() -> Element {
@@ -41,8 +64,23 @@ pub fn Gui() -> Element {
             class: "main-container",
 
             header {
+                class: "flex justify-between items-center p-4 bg-slate-800 border-b border-slate-700",
+
                 h1 {
+                    class: "text-2xl font-bold text-white",
                     "Panduza Serial Port"
+                }
+
+                div {
+                    class: "flex gap-2",
+
+                    button {
+                        class: "px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2",
+                        onclick: move |_| {
+                            open_config_folder();
+                        },
+                        "📁 Ouvrir Config"
+                    }
                 }
             }
 
