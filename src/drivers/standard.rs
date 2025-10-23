@@ -77,17 +77,72 @@ impl StandardDriver {
 impl SerialPortDriver for StandardDriver {
     /// Initialize the driver
     async fn initialize(&mut self) -> Result<(), DriverError> {
-        // info!("Kd3005p Driver: initialize");
-        // let mut dev = ka3005p::find_serial_port().unwrap();
+        // Determine the port name from configuration
+        let port_name = match &self.config.endpoint {
+            Some(endpoint) => {
+                // If name is provided, use it
+                if let Some(name) = &endpoint.name {
+                    name.clone()
+                } else if let Some(usb_config) = &endpoint.usb {
+                    // Try to find the port by USB configuration
+                    let available_ports = serialport::available_ports().map_err(|e| {
+                        DriverError::Generic(format!("Failed to list available ports: {}", e))
+                    })?;
 
-        //
-        let port = SerialPort::open("/dev/ttyUSB0", 115200).unwrap();
+                    let mut matching_port = None;
+                    for port_info in available_ports {
+                        if let serialport::SerialPortType::UsbPort(usb_info) = &port_info.port_type
+                        {
+                            let vid_match = usb_config.vid.map_or(true, |vid| vid == usb_info.vid);
+                            let pid_match = usb_config.pid.map_or(true, |pid| pid == usb_info.pid);
+                            let serial_match = usb_config.serial.as_ref().map_or(true, |serial| {
+                                usb_info
+                                    .serial_number
+                                    .as_ref()
+                                    .map_or(false, |usb_serial| usb_serial == serial)
+                            });
+
+                            if vid_match && pid_match && serial_match {
+                                matching_port = Some(port_info.port_name);
+                                break;
+                            }
+                        }
+                    }
+
+                    matching_port.ok_or_else(|| {
+                        DriverError::Generic("No matching USB device found".to_string())
+                    })?
+                } else {
+                    return Err(DriverError::Generic(
+                        "No port name or USB configuration provided".to_string(),
+                    ));
+                }
+            }
+            None => {
+                return Err(DriverError::Generic(
+                    "No endpoint configuration provided".to_string(),
+                ));
+            }
+        };
+
+        // Get baud rate from configuration or use default
+        let baud_rate = self
+            .config
+            .endpoint
+            .as_ref()
+            .and_then(|e| e.baud_rate)
+            .unwrap_or(115200);
+
+        // Open the serial port
+        let port = SerialPort::open(&port_name, baud_rate).map_err(|e| {
+            DriverError::Generic(format!("Failed to open port {}: {}", port_name, e))
+        })?;
+
         self.driver = Some(Arc::new(Mutex::new(port)));
-        // let mut buffer = [0; 256];
-        // loop {
-        //     let read = port.read(&mut buffer).await?;
-        //     port.write_all(&buffer[..read]).await?;
-        // }
+        info!(
+            "Successfully opened serial port: {} at {} baud",
+            port_name, baud_rate
+        );
 
         Ok(())
     }
