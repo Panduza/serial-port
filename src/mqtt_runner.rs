@@ -102,6 +102,7 @@ impl Runner {
                 client.clone(),
                 rumqttc::QoS::AtMostOnce,
                 false,
+                format!("power-supply/{}", runner.name),
             ));
 
         // Subscribe to all relevant topics
