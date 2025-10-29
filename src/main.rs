@@ -2,7 +2,6 @@ mod client;
 mod config;
 mod constants;
 mod drivers;
-mod factory;
 mod gui;
 mod mcp;
 mod server;
@@ -20,6 +19,8 @@ use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
 use tracing::subscriber::{set_global_default, SetGlobalDefaultError};
+
+use crate::config::ServerMainConfig;
 
 // Global state for sharing data between background services and GUI
 #[derive(Clone, Debug)]
@@ -93,11 +94,11 @@ fn main() {
 }
 
 // async fn initialize_background_services(
-//     instances: Arc<Mutex<Vec<mqtt_runner::RunnerHandler>>>,
+//     instances: Arc<Mutex<Vec<mqtt_runner::MqttRunnerHandler>>>,
 //     app_state: AppState,
 // ) {
 //     // Get user configuration
-//     let config = config::GlobalConfig::from_user_file();
+//     let config = config::ServerMainConfig::from_user_file();
 //     debug!("Loaded configuration: {:?}", config);
 
 //     // Update broker config in app state

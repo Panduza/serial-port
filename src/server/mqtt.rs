@@ -1,13 +1,14 @@
-use crate::drivers::SerialPortDriver;
+use crate::{constants, drivers::SerialPortDriver};
 use bytes::Bytes;
 use rumqttc::{AsyncClient, MqttOptions};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
+use pza_toolkit::rumqtt::client::{init_client, RumqttCustomAsyncClient};
 
+#[derive(Debug)]
 /// Handler for the MQTT Runner task
-pub struct RunnerHandler {
+pub struct MqttRunnerHandler {
     /// Task handler
     pub task_handler: tokio::task::JoinHandle<()>,
 }
@@ -15,7 +16,7 @@ pub struct RunnerHandler {
 /// MQTT Runner for handling power supply commands and measurements
 pub struct MqttRunner {
     /// MQTT client
-    client: AsyncClient,
+    client: RumqttCustomAsyncClient,
     /// Instance name
     name: String,
 
@@ -55,65 +56,52 @@ impl MqttRunner {
     pub fn start(
         name: String,
         driver: Arc<Mutex<dyn SerialPortDriver + Send + Sync>>,
-    ) -> RunnerHandler {
-        // Initialize MQTT client
-        let mut mqttoptions = MqttOptions::new(
-            format!("rumqtt-sync-{}", generate_random_string(5)),
-            "localhost",
-            1883,
+    ) -> anyhow::Result<MqttRunnerHandler> {
+        let (client, event_loop) = init_client("tttt");
+
+        let custom_client = RumqttCustomAsyncClient::new(
+            client,
+            rumqttc::QoS::AtMostOnce,
+            true,
+            format!("{}/{}", constants::MQTT_TOPIC_PREFIX, name),
         );
-        mqttoptions.set_keep_alive(Duration::from_secs(3));
-        let (client, event_loop) = AsyncClient::new(mqttoptions, 100);
 
         // Create runner object
-        let runner = Runner {
-            client: client.clone(),
+        let runner = MqttRunner {
             name: name.clone(),
             driver,
-            topic_status: psu_topic(&name, "status"),
-            topic_error: psu_topic(&name, "error"),
-            topic_control_oe: psu_topic(&name, "control/oe"),
-            topic_control_oe_cmd: psu_topic(&name, "control/oe/cmd"),
-            topic_control_voltage: psu_topic(&name, "control/voltage"),
-            topic_control_voltage_cmd: psu_topic(&name, "control/voltage/cmd"),
-            topic_control_current: psu_topic(&name, "control/current"),
-            topic_control_current_cmd: psu_topic(&name, "control/current/cmd"),
-            topic_measure_voltage_refresh_freq: psu_topic(&name, "measure/voltage/refresh_freq"),
-            topic_measure_current_refresh_freq: psu_topic(&name, "measure/current/refresh_freq"),
+            topic_status: custom_client.topic_with_prefix("status"),
+            topic_error: custom_client.topic_with_prefix("error"),
+            topic_control_oe: custom_client.topic_with_prefix("control/oe"),
+            topic_control_oe_cmd: custom_client.topic_with_prefix("control/oe/cmd"),
+            topic_control_voltage: custom_client.topic_with_prefix("control/voltage"),
+            topic_control_voltage_cmd: custom_client.topic_with_prefix("control/voltage/cmd"),
+            topic_control_current: custom_client.topic_with_prefix("control/current"),
+            topic_control_current_cmd: custom_client.topic_with_prefix("control/current/cmd"),
+            topic_measure_voltage_refresh_freq: custom_client
+                .topic_with_prefix("measure/voltage/refresh_freq"),
+            topic_measure_current_refresh_freq: custom_client
+                .topic_with_prefix("measure/current/refresh_freq"),
+
+            client: custom_client,
         };
 
-        let task_handler = tokio::spawn(Self::task_loop(client.clone(), event_loop, runner));
+        let task_handler = tokio::spawn(Self::task_loop(event_loop, runner));
 
-        RunnerHandler { task_handler }
+        Ok(MqttRunnerHandler { task_handler })
     }
 
     // --------------------------------------------------------------------------------
 
     /// The main async task loop for the MQTT runner
-    async fn task_loop(client: AsyncClient, mut event_loop: rumqttc::EventLoop, runner: Runner) {
-        runner
-            .driver
-            .lock()
-            .await
-            .set_client(RumqttCustomAsyncClient::new(
-                client.clone(),
-                rumqttc::QoS::AtMostOnce,
-                false,
-                format!("{}/{}", crate::constants::MQTT_TOPIC_PREFIX, runner.name),
-            ));
+    async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: MqttRunner) {
+        runner.driver.lock().await.set_client(runner.client.clone());
 
         // Subscribe to all relevant topics
-        Self::subscribe_to_all(
-            client.clone(),
-            vec![
-                &runner.topic_control_oe_cmd,
-                &runner.topic_control_voltage_cmd,
-                &runner.topic_control_current_cmd,
-                &runner.topic_measure_voltage_refresh_freq,
-                &runner.topic_measure_current_refresh_freq,
-            ],
-        )
-        .await;
+        runner
+            .client
+            .subscribe_to_all(vec![runner.topic_control_oe_cmd.clone()])
+            .await;
 
         runner.initialize().await;
 
@@ -175,6 +163,7 @@ impl MqttRunner {
         } else {
             // Invalid command
             self.client
+                .client
                 .publish(
                     self.topic_control_oe.clone(),
                     rumqttc::QoS::AtLeastOnce,

@@ -3,7 +3,7 @@ pub mod standard;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
+use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug, Clone)]

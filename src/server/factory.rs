@@ -12,6 +12,7 @@ pub enum FactoryError {
     NoDriver(String),
 }
 
+#[derive(Debug)]
 pub struct Factory {
     /// This map store Driver generators.
     /// Generator are function that return a SerialPortDriver
@@ -27,7 +28,7 @@ pub struct Factory {
 
 impl Factory {
     /// Create a new empty Factory
-    pub fn new() -> Self {
+    pub fn initialize() -> Self {
         let mut factory = Self {
             map: HashMap::new(),
             manifest: HashMap::new(),

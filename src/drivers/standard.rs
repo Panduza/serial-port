@@ -10,7 +10,7 @@ use crate::drivers::SerialPortDriver;
 use serial2_tokio::SerialPort;
 
 use pza_toolkit::config::UsbEndpointConfig;
-use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
+use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 ///
 pub struct StandardDriver {
     /// Configuration

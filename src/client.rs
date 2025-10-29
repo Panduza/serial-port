@@ -1,12 +1,12 @@
-use crate::config::GlobalConfig;
+use crate::config::ServerMainConfig;
 
 use bytes::Bytes;
 use rand::Rng;
 use rumqttc::{AsyncClient, MqttOptions};
 
 use pza_toolkit::config::IPEndpointConfig;
-use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
-use pza_toolkit::rumqtt_init::rumqtt_init_client;
+use pza_toolkit::rumqtt::client::init_client;
+use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use tokio::sync::broadcast;
 
 // mod data;
@@ -25,14 +25,6 @@ pub struct SerialPortClientBuilder {
 }
 
 impl SerialPortClientBuilder {
-    /// Create a new builder from user configuration file
-    pub fn from_user_config_file() -> Self {
-        Self {
-            psu_name: None,
-            broker: GlobalConfig::from_user_file().broker,
-        }
-    }
-
     // ------------------------------------------------------------------------
 
     /// Create a new builder from broker configuration
@@ -55,7 +47,7 @@ impl SerialPortClientBuilder {
 
     /// Build the SerialPortClient instance
     pub fn build(self) -> SerialPortClient {
-        let (client, event_loop) = rumqtt_init_client("serial-port");
+        let (client, event_loop) = init_client("serial-port");
 
         SerialPortClient::new_with_client(self.psu_name.unwrap(), client, event_loop)
     }

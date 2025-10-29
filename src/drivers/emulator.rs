@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
+use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use tracing::info;
 
 use crate::config::SerialPortConfig;
@@ -48,7 +48,7 @@ impl SerialPortDriver for PowerSupplyEmulator {
     }
 
     /// Set the MQTT client
-    fn set_client(&mut self, client: pza_toolkit::rumqtt_client::RumqttCustomAsyncClient) {
+    fn set_client(&mut self, client: pza_toolkit::rumqtt::client::RumqttCustomAsyncClient) {
         self.client = Some(client);
     }
 }

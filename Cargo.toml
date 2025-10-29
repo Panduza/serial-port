@@ -88,6 +88,8 @@ tracing = "0.1.37"
 # Tracing subscriber for log formatting
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
+anyhow = "1.0.100"
+
 [features]
 default = ["desktop"]
 web = ["dioxus/web"]
