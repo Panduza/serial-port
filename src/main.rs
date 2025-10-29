@@ -1,19 +1,21 @@
 mod client;
 mod config;
-mod constant;
+mod constants;
 mod drivers;
 mod factory;
 mod gui;
 mod mcp;
-mod mqtt_runner;
+mod server;
+
 mod path;
 
 use dioxus::prelude::*;
-use mqtt_runner::Runner;
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{debug, error, Level};
 
+use pza_toolkit::dioxus::logger::LoggerBuilder;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
@@ -41,138 +43,124 @@ fn app_component() -> Element {
     }
 }
 
-pub fn init_logger(level: Level) -> Result<(), SetGlobalDefaultError> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        // Create a filter that keeps the default level but excludes rumqttd logs
-        let level_str = match level {
-            Level::ERROR => "error",
-            Level::WARN => "warn",
-            Level::INFO => "info",
-            Level::DEBUG => "debug",
-            Level::TRACE => "trace",
-        };
-
-        let filter_str = format!("{},rumqttd=off", level_str);
-        let filter = EnvFilter::builder().parse_lossy(&filter_str);
-
-        let sub = tracing_subscriber::FmtSubscriber::builder().with_env_filter(filter);
-
-        // if !dioxus_cli_config::is_cli_enabled() {
-        //     return set_global_default(sub.finish());
-        // }
-
-        // todo(jon): this is a small hack to clean up logging when running under the CLI
-        // eventually we want to emit everything as json and let the CLI manage the parsing + display
-        set_global_default(sub.without_time().with_target(false).finish())
-    }
-}
-
 fn main() {
     // Init logger
-    init_logger(Level::DEBUG).expect("failed to init logger");
+    LoggerBuilder::default()
+        .with_level(Level::TRACE)
+        // .display_target(true)
+        .filter_rumqttd()
+        .filter_dioxus_core()
+        .filter_dioxus_signals()
+        .filter_warnings()
+        .build()
+        .expect("failed to init logger");
 
-    // Create global app state
-    let app_state = AppState {
-        psu_names: Arc::new(Mutex::new(Vec::new())),
-        broker_config: Arc::new(Mutex::new(None)),
-    };
+    // Ensure user root directory exists
+    pza_toolkit::path::ensure_user_root_dir_exists()
+        .unwrap_or_else(|err| panic!("Failed to ensure user root directory exists: {}", err));
 
-    // Create a dedicated Tokio runtime for background tasks
-    let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+    // Get user configuration
+    let server_config = ServerMainConfig::from_user_file()
+        .unwrap_or_else(|err| panic!("Failed to load server configuration: {}", err));
 
-    // Store runtime and instances in Arc for sharing between threads
-    let runtime = Arc::new(rt);
-    let instances = Arc::new(Mutex::new(Vec::new()));
+    // Create factory
+    let factory = crate::server::factory::Factory::initialize();
 
-    // Clone for the background task
-    let runtime_clone = Arc::clone(&runtime);
-    let instances_clone = Arc::clone(&instances);
-    let app_state_clone = app_state.clone();
+    // // Create a dedicated Tokio runtime for background tasks
+    // let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
 
-    // Spawn background initialization and management task
-    std::thread::spawn(move || {
-        runtime_clone.block_on(async {
-            initialize_background_services(instances_clone, app_state_clone).await;
-        });
-    });
+    // // Store runtime and instances in Arc for sharing between threads
+    // let runtime = Arc::new(rt);
+    // let instances = Arc::new(Mutex::new(Vec::new()));
 
-    // Store app_state globally for the Dioxus app
-    APP_STATE_STORAGE.set(app_state).unwrap();
+    // // Clone for the background task
+    // let runtime_clone = Arc::clone(&runtime);
+    // let instances_clone = Arc::clone(&instances);
+    // let app_state_clone = app_state.clone();
+
+    // // Spawn background initialization and management task
+    // std::thread::spawn(move || {
+    //     runtime_clone.block_on(async {
+    //         initialize_background_services(instances_clone, app_state_clone).await;
+    //     });
+    // });
+
+    // // Store app_state globally for the Dioxus app
+    // APP_STATE_STORAGE.set(app_state).unwrap();
 
     // Launch Dioxus app on the main thread
     dioxus::launch(app_component);
 }
 
-async fn initialize_background_services(
-    instances: Arc<Mutex<Vec<mqtt_runner::RunnerHandler>>>,
-    app_state: AppState,
-) {
-    // Get user configuration
-    let config = config::GlobalConfig::from_user_file();
-    debug!("Loaded configuration: {:?}", config);
+// async fn initialize_background_services(
+//     instances: Arc<Mutex<Vec<mqtt_runner::RunnerHandler>>>,
+//     app_state: AppState,
+// ) {
+//     // Get user configuration
+//     let config = config::GlobalConfig::from_user_file();
+//     debug!("Loaded configuration: {:?}", config);
 
-    // Update broker config in app state
-    {
-        let mut broker_config = app_state.broker_config.lock().await;
-        *broker_config = Some(config.broker.clone());
-    }
+//     // Update broker config in app state
+//     {
+//         let mut broker_config = app_state.broker_config.lock().await;
+//         *broker_config = Some(config.broker.clone());
+//     }
 
-    // Create factory
-    let factory = factory::Factory::new();
-    debug!("Factory initialized with drivers: {:?}", factory.map.keys());
+//     // Create factory
+//     let factory = factory::Factory::new();
+//     debug!("Factory initialized with drivers: {:?}", factory.map.keys());
 
-    //
-    factory.write_scan_results_to_file().unwrap_or_else(|err| {
-        error!("Failed to write factory scan results: {}", err);
-    });
+//     //
+//     factory.write_scan_results_to_file().unwrap_or_else(|err| {
+//         error!("Failed to write factory scan results: {}", err);
+//     });
 
-    // Write factory manifest to file
-    if let Err(err) = factory.write_manifest_to_file() {
-        error!("Failed to write factory manifest: {}", err);
-    } else {
-        debug!("Factory manifest written successfully");
-    }
+//     // Write factory manifest to file
+//     if let Err(err) = factory.write_manifest_to_file() {
+//         error!("Failed to write factory manifest: {}", err);
+//     } else {
+//         debug!("Factory manifest written successfully");
+//     }
 
-    // Start MQTT broker
-    let _broker_handle = pza_toolkit::rumqtt::broker::start(&config.broker);
+//     // Start MQTT broker
+//     let _broker_handle = pza_toolkit::rumqtt::broker::start(&config.broker);
 
-    // Initialize devices
-    let mut psu_names = Vec::new();
-    let mut instance_handles = Vec::new();
-    if let Some(devices) = &config.devices {
-        for (name, device_config) in devices {
-            let instance = factory
-                .instanciate_driver(device_config.clone())
-                .unwrap_or_else(|err| {
-                    panic!("Failed to create driver for device '{}': {}", name, err)
-                });
+//     // Initialize devices
+//     let mut psu_names = Vec::new();
+//     let mut instance_handles = Vec::new();
+//     if let Some(devices) = &config.devices {
+//         for (name, device_config) in devices {
+//             let instance = factory
+//                 .instanciate_driver(device_config.clone())
+//                 .unwrap_or_else(|err| {
+//                     panic!("Failed to create driver for device '{}': {}", name, err)
+//                 });
 
-            psu_names.push(name.clone());
+//             psu_names.push(name.clone());
 
-            let runner = Runner::start(name.clone(), instance);
-            instance_handles.push(runner);
-        }
-    }
+//             let runner = Runner::start(name.clone(), instance);
+//             instance_handles.push(runner);
+//         }
+//     }
 
-    // Update PSU names in app state
-    {
-        let mut names = app_state.psu_names.lock().await;
-        *names = psu_names.clone();
-    }
+//     // Update PSU names in app state
+//     {
+//         let mut names = app_state.psu_names.lock().await;
+//         *names = psu_names.clone();
+//     }
 
-    mcp::McpServer::run(config.clone(), psu_names)
-        .await
-        .unwrap();
+//     mcp::McpServer::run(config.clone(), psu_names)
+//         .await
+//         .unwrap();
 
-    // Store instances for later management
-    let mut locked_instances = instances.lock().await;
-    *locked_instances = instance_handles;
+//     // Store instances for later management
+//     let mut locked_instances = instances.lock().await;
+//     *locked_instances = instance_handles;
 
-    debug!("Background services initialized successfully");
+//     debug!("Background services initialized successfully");
 
-    // Keep the runtime alive for background tasks
-    loop {
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    }
-}
+//     // Keep the runtime alive for background tasks
+//     loop {
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//     }
+// }

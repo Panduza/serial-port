@@ -4,10 +4,7 @@ use rumqttc::{AsyncClient, MqttOptions};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
-pub mod helper;
-use helper::{generate_random_string, psu_topic};
-
-use pza_toolkit::rumqtt_client::RumqttCustomAsyncClient;
+use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 
 /// Handler for the MQTT Runner task
 pub struct RunnerHandler {
@@ -16,7 +13,7 @@ pub struct RunnerHandler {
 }
 
 /// MQTT Runner for handling power supply commands and measurements
-pub struct Runner {
+pub struct MqttRunner {
     /// MQTT client
     client: AsyncClient,
     /// Instance name
@@ -51,7 +48,7 @@ pub struct Runner {
     topic_measure_current_refresh_freq: String,
 }
 
-impl Runner {
+impl MqttRunner {
     // --------------------------------------------------------------------------------
 
     /// Start the runner
@@ -102,7 +99,7 @@ impl Runner {
                 client.clone(),
                 rumqttc::QoS::AtMostOnce,
                 false,
-                format!("{}/{}", crate::constant::MQTT_TOPIC_PREFIX, runner.name),
+                format!("{}/{}", crate::constants::MQTT_TOPIC_PREFIX, runner.name),
             ));
 
         // Subscribe to all relevant topics

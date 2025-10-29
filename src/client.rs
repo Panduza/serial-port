@@ -215,7 +215,7 @@ impl SerialPortClient {
             true,
             format!(
                 "{}/{}",
-                crate::constant::MQTT_TOPIC_PREFIX,
+                crate::constants::MQTT_TOPIC_PREFIX,
                 psu_name.clone()
             ),
         );
