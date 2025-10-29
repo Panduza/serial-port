@@ -2,14 +2,16 @@ mod client;
 mod config;
 mod constants;
 mod drivers;
-mod gui;
+
 mod mcp;
 mod server;
 
 mod path;
 
+use crate::server::services::server_services;
+use crate::server::state::ServerState;
 use dioxus::prelude::*;
-
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{debug, error, Level};
@@ -55,10 +57,19 @@ fn main() {
         instances: Arc::new(Mutex::new(HashMap::new())),
     };
 
-    SERVER_STATE_STORAGE
-        .set(Arc::new(server_state.clone()))
-        .unwrap();
+    // Spawn background initialization and management task
+    std::thread::spawn(move || {
+        // Create a dedicated Tokio runtime for background tasks
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime");
+        rt.block_on(server_services(
+            SERVER_STATE_STORAGE
+                .get()
+                .expect("Failed to get server state")
+                .clone(),
+        ))
+        .expect("Server services crash");
+    });
 
     // Launch Dioxus app on the main thread
-    dioxus::launch(app_component);
+    dioxus::launch(server::Gui);
 }
