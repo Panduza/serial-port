@@ -34,6 +34,12 @@ struct CurrentParams {
     current: String,
 }
 
+#[derive(Serialize, Deserialize, JsonSchema)]
+struct SendDataParams {
+    /// Data to send, encoded as hexadecimal string (e.g., "48656c6c6f" for "Hello")
+    data: String,
+}
+
 #[derive(Clone)]
 struct PowerSupplyState {
     client: SerialPortClient,
@@ -168,32 +174,49 @@ impl PowerSupplyService {
     //     ))]))
     // }
 
-    /// Set the output current limit of the power supply
+    /// Send data to the serial port
     #[tool(
-        description = "Set the output current limit of the power supply. Takes current as a string, e.g., '1.0'"
+        description = "Send byte data to the serial port. Data should be provided as a hexadecimal string (e.g., '48656c6c6f' for 'Hello')"
     )]
-    async fn set_current(
+    async fn send_byte_data(
         &self,
-        params: Parameters<CurrentParams>,
+        params: Parameters<SendDataParams>,
     ) -> Result<CallToolResult, McpError> {
-        let current = &params.0.current;
+        let hex_data = &params.0.data;
         let client = {
             let psu_state = self.state.lock().await;
             psu_state.client.clone()
         };
 
-        // client.set_current(current.clone()).await.map_err(|_e| {
-        //     McpError::new(
-        //         ErrorCode::INTERNAL_ERROR,
-        //         "Failed to set power supply current limit",
-        //         None,
-        //     )
-        // })?;
+        // Convert hex string to bytes
+        let bytes_data = hex::decode(hex_data).map_err(|e| {
+            McpError::new(
+                ErrorCode::INVALID_PARAMS,
+                format!("Invalid hex data: {}", e),
+                None,
+            )
+        })?;
 
-        info!("Successfully set power supply current limit to {}", current);
+        // Convert to bytes::Bytes and send via the client
+        let bytes_to_send = bytes::Bytes::from(bytes_data);
+
+        // Send the data via the SerialPortClient
+        client.send(bytes_to_send.clone()).await.map_err(|e| {
+            McpError::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to send data to serial port: {}", e),
+                None,
+            )
+        })?;
+
+        info!(
+            "Successfully sent {} bytes to serial port",
+            bytes_to_send.len()
+        );
         Ok(CallToolResult::success(vec![Content::text(format!(
-            "Power supply current limit set to {}",
-            current
+            "Sent {} bytes to serial port: {}",
+            bytes_to_send.len(),
+            hex_data
         ))]))
     }
 }

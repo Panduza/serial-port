@@ -9,6 +9,7 @@ description = "Panduza Serial Port Server - MQTT broker and device management"
 
 [dependencies]
 
+hex = "0.4.3"
 once_cell = "1.21.3"
 # ---
 # Trait for async functions in traits

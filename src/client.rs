@@ -158,9 +158,21 @@ impl SerialPortClient {
         obj
     }
 
+    // ------------------------------------------------------------------------
+
     /// Subscribe to output current state changes
     pub fn subscribe_rx(&self) -> broadcast::Receiver<Bytes> {
         self.rx_channel.0.subscribe()
     }
+
+    // ------------------------------------------------------------------------
+
+    pub async fn send(&self, bytes: Bytes) -> anyhow::Result<()> {
+        self.mqtt_client
+            .publish(self.mqtt_client.topic_with_prefix("tx"), bytes.to_vec())
+            .await?;
+        Ok(())
+    }
+
     // ------------------------------------------------------------------------
 }
