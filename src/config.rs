@@ -1,3 +1,4 @@
+use pza_toolkit::config::MqttBrokerConfig;
 pub use pza_toolkit::config::{IPEndpointConfig, SerialPortEndpointConfig};
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -44,7 +45,7 @@ pub struct ServerMainConfig {
     pub mcp: McpServerConfig,
 
     /// MQTT broker configuration
-    pub broker: IPEndpointConfig,
+    pub broker: MqttBrokerConfig,
 
     /// Power supply configurations, keyed by their unique identifiers
     pub devices: Option<HashMap<String, SerialPortConfig>>,
@@ -59,10 +60,7 @@ impl Default for ServerMainConfig {
                 host: "127.0.0.1".to_string(),
                 port: 50051,
             },
-            broker: IPEndpointConfig {
-                addr: Some("127.0.0.1".to_string()),
-                port: Some(1883),
-            },
+            broker: MqttBrokerConfig::default(),
             devices: None,
         }
     }

@@ -3,7 +3,6 @@ mod config;
 mod constants;
 mod drivers;
 
-mod mcp;
 mod server;
 
 mod path;

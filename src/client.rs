@@ -15,24 +15,23 @@ use tokio::sync::broadcast;
 // mod error;
 // pub use error::ClientError;
 
+#[derive(Default)]
 /// Builder pattern for creating SerialPortClient instances
 pub struct SerialPortClientBuilder {
     /// Name of the power supply unit
     pub psu_name: Option<String>,
 
     /// MQTT broker configuration
-    pub broker: IPEndpointConfig,
+    pub ip: Option<IPEndpointConfig>,
 }
 
 impl SerialPortClientBuilder {
     // ------------------------------------------------------------------------
 
     /// Create a new builder from broker configuration
-    pub fn from_broker_config(broker: IPEndpointConfig) -> Self {
-        Self {
-            psu_name: None,
-            broker,
-        }
+    pub fn with_ip(mut self, ip: IPEndpointConfig) -> Self {
+        self.ip = Some(ip);
+        self
     }
 
     // ------------------------------------------------------------------------

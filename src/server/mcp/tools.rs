@@ -58,9 +58,10 @@ impl PowerSupplyService {
     //--------------------------------------------------------------------------
 
     pub fn new(config: ServerMainConfig, psu_name: String) -> Self {
-        let client = SerialPortClientBuilder::from_broker_config(config.broker.clone())
+        let client = SerialPortClientBuilder::default()
+            .with_ip(config.broker.tcp.unwrap().clone())
             .with_power_supply_name(psu_name.clone())
-            .build();
+            .build()?;
         debug!("Client initialized");
 
         Self {
