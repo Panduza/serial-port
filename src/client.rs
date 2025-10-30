@@ -98,25 +98,6 @@ impl SerialPortClient {
     async fn handle_incoming_message(&self, topic: &String, payload: Bytes) -> anyhow::Result<()> {
         if topic == &self.topic_rx {
             self.rx_channel.0.send(payload)?;
-            //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-            //     let enabled = msg.trim().eq_ignore_ascii_case("ON");
-
-            //     // Update internal state
-            //
-            //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-            //     let current_str = msg.trim().to_string();
-
-            //     // Update internal state
-            //     {
-            //         let mut data = self.mutable_data.lock().await;
-            //         data.current = current_str.clone();
-            //     }
-
-            //     // Trigger all current callbacks
-            //     let callbacks = self.callbacks.lock().await;
-            //     for callback in callbacks.current_callbacks.values() {
-            //         callback(current_str.clone()).await;
-            //     }
         }
         Ok(())
     }

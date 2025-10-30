@@ -34,7 +34,7 @@ impl McpServer {
 
         //
         for psu_name in psu_names {
-            let service_tools = PowerSupplyService::new(config.clone(), psu_name.clone())?;
+            let service_tools = PowerSupplyService::new(config.clone(), psu_name.clone()).await?;
 
             // Create the streamable HTTP service for MCP protocol handling
             let mcp_service = StreamableHttpService::new(
