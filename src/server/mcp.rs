@@ -4,7 +4,6 @@ use axum::Router;
 use rmcp::transport::{
     streamable_http_server::session::local::LocalSessionManager, StreamableHttpService,
 };
-use std::io::Error as IoError;
 use tokio::net::TcpListener;
 use tokio::signal;
 use tokio::sync::oneshot;
@@ -25,7 +24,7 @@ impl McpServer {
 
     /// Starts the server with the given service
     ///
-    pub async fn run(config: ServerMainConfig, psu_names: Vec<String>) -> Result<(), IoError> {
+    pub async fn run(config: ServerMainConfig, psu_names: Vec<String>) -> anyhow::Result<()> {
         // Bind and serve the application
         let bind_address = "127.0.0.1:3000";
         let listener = TcpListener::bind(&bind_address).await?;
@@ -35,7 +34,7 @@ impl McpServer {
 
         //
         for psu_name in psu_names {
-            let service_tools = PowerSupplyService::new(config.clone(), psu_name.clone());
+            let service_tools = PowerSupplyService::new(config.clone(), psu_name.clone())?;
 
             // Create the streamable HTTP service for MCP protocol handling
             let mcp_service = StreamableHttpService::new(
@@ -45,13 +44,16 @@ impl McpServer {
             );
 
             // MCP endpoint - using streamable_http_server for MCP protocol handling
-            app = app.nest_service(format!("/power-supply/{}", &psu_name).as_str(), mcp_service);
+            app = app.nest_service(
+                format!("/{}/{}", crate::constants::SERVER_TYPE_NAME, &psu_name).as_str(),
+                mcp_service,
+            );
 
-            //
+            // Log the endpoint
             tracing::info!(
                 "MCP server listening on {}{}",
                 bind_address,
-                format!("/power-supply/{}", &psu_name)
+                format!("/{}/{}", crate::constants::SERVER_TYPE_NAME, &psu_name)
             );
         }
 

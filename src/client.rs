@@ -45,10 +45,14 @@ impl SerialPortClientBuilder {
     // ------------------------------------------------------------------------
 
     /// Build the SerialPortClient instance
-    pub fn build(self) -> SerialPortClient {
+    pub fn build(self) -> anyhow::Result<SerialPortClient> {
         let (client, event_loop) = init_client("serial-port");
 
-        SerialPortClient::new_with_client(self.psu_name.unwrap(), client, event_loop)
+        Ok(SerialPortClient::new_with_client(
+            self.psu_name.unwrap(),
+            client,
+            event_loop,
+        ))
     }
 }
 
@@ -206,7 +210,7 @@ impl SerialPortClient {
             true,
             format!(
                 "{}/{}",
-                crate::constants::MQTT_TOPIC_PREFIX,
+                crate::constants::SERVER_TYPE_NAME,
                 psu_name.clone()
             ),
         );
