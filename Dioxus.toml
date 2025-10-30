@@ -3,7 +3,7 @@
 [web.app]
 
 # HTML title tag content
-title = "panduza-power-supply"
+title = "Panduza Serial Port"
 
 # include `assets` in web platform
 [web.resource]

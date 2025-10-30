@@ -56,6 +56,10 @@ fn main() {
         instances: Arc::new(Mutex::new(HashMap::new())),
     };
 
+    SERVER_STATE_STORAGE
+        .set(Arc::new(server_state.clone()))
+        .unwrap();
+
     // Spawn background initialization and management task
     std::thread::spawn(move || {
         // Create a dedicated Tokio runtime for background tasks

@@ -1,6 +1,6 @@
 use pza_toolkit::config::MqttBrokerConfig;
 pub use pza_toolkit::config::{IPEndpointConfig, SerialPortEndpointConfig};
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize};
 use serde_json;
 use std::collections::HashMap;
 use std::path::Path;
@@ -53,6 +53,21 @@ pub struct ServerMainConfig {
 
 impl Default for ServerMainConfig {
     fn default() -> Self {
+        // Create a default power supply configuration for an emulator device
+        let mut devices = HashMap::new();
+        devices.insert(
+            "emulator".to_string(),
+            SerialPortConfig {
+                model: "emulator".to_string(),
+                description: None,
+                endpoint: Some(SerialPortEndpointConfig {
+                    name: Some("emulator".to_string()),
+                    baud_rate: Some(9600),
+                    usb: None,
+                }),
+            },
+        );
+
         Self {
             gui: GuiConfig { enable: true },
             mcp: McpServerConfig {
@@ -61,7 +76,7 @@ impl Default for ServerMainConfig {
                 port: 50051,
             },
             broker: MqttBrokerConfig::default(),
-            devices: None,
+            devices: Some(devices),
         }
     }
 }
