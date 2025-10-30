@@ -44,7 +44,7 @@ struct PowerSupplyState {
 #[derive(Clone)]
 pub struct PowerSupplyService {
     /// Power Supply Name provided by the user
-    psu_name: String,
+    instance_name: String,
 
     /// Tool router for MCP tools
     tool_router: ToolRouter<PowerSupplyService>,
@@ -57,15 +57,15 @@ pub struct PowerSupplyService {
 impl PowerSupplyService {
     //--------------------------------------------------------------------------
 
-    pub fn new(config: ServerMainConfig, psu_name: String) -> anyhow::Result<Self> {
+    pub fn new(config: ServerMainConfig, instance_name: String) -> anyhow::Result<Self> {
         let client = SerialPortClientBuilder::default()
             .with_ip(config.broker.tcp.unwrap().clone())
-            .with_power_supply_name(psu_name.clone())
+            .with_power_supply_name(instance_name.clone())
             .build()?;
         debug!("Client initialized");
 
         Ok(Self {
-            psu_name,
+            instance_name,
             tool_router: Self::tool_router(),
             prompt_router: Self::prompt_router(),
             state: Arc::new(Mutex::new(PowerSupplyState { client })),
@@ -221,10 +221,10 @@ impl ServerHandler for PowerSupplyService {
                 .build(),
             server_info: Implementation::from_build_env(),
             instructions: Some(format!(
-                r#"""This server provides access to a power supply.
-The name of this power supply is "{}" and can be used by the user to request actions.
+                r#"""This server provides access to a serial port.
+The name of this serial port is "{}" and can be used by the user to request actions.
             """#,
-                self.psu_name
+                self.instance_name
             )),
         }
     }

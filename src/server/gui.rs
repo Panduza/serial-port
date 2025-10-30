@@ -21,28 +21,6 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
-/// Ouvre le dossier de configuration .panduza dans l'explorateur de fichiers
-fn open_config_folder() {
-    if let Some(config_dir) = pza_toolkit::path::user_root_dir() {
-        let path = config_dir.to_string_lossy().to_string();
-
-        #[cfg(target_os = "windows")]
-        {
-            let _ = Command::new("explorer").arg(&path).spawn();
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            let _ = Command::new("open").arg(&path).spawn();
-        }
-
-        #[cfg(target_os = "linux")]
-        {
-            let _ = Command::new("xdg-open").arg(&path).spawn();
-        }
-    }
-}
-
 #[component]
 pub fn Gui() -> Element {
     let mut runtime_status = use_signal(|| "Initializing...".to_string());

@@ -6,25 +6,15 @@ use bytes::Bytes;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use thiserror::Error as ThisError;
 
-#[derive(ThisError, Debug, Clone)]
-pub enum DriverError {
-    #[error("An error occurred: {0}")]
-    Generic(String),
-}
-
 #[async_trait]
 pub trait SerialPortDriver: Send + Sync {
     // --- Lifecycle management ---
 
     /// Initialize the driver
-    async fn initialize(&mut self) -> Result<(), DriverError>;
+    async fn initialize(&mut self, mqtt_client: RumqttCustomAsyncClient) -> anyhow::Result<()>;
     /// Shutdown the driver
-    async fn shutdown(&mut self) -> Result<(), DriverError>;
+    async fn shutdown(&mut self) -> anyhow::Result<()>;
 
     /// Send bytes through the serial port
-    async fn send(&mut self, bytes: Bytes) -> Result<(), DriverError>;
-
-    /// Set the MQTT client
-    ///
-    fn set_client(&mut self, client: RumqttCustomAsyncClient);
+    async fn send(&mut self, bytes: Bytes) -> anyhow::Result<()>;
 }

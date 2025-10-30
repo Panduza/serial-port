@@ -2,10 +2,10 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use anyhow::anyhow;
 use tracing::info;
 
 use crate::config::SerialPortConfig;
-use crate::drivers::DriverError;
 use crate::drivers::SerialPortDriver;
 use serial2_tokio::SerialPort;
 
@@ -83,7 +83,7 @@ impl StandardDriver {
 #[async_trait]
 impl SerialPortDriver for StandardDriver {
     /// Initialize the driver
-    async fn initialize(&mut self) -> Result<(), DriverError> {
+    async fn initialize(&mut self, mqtt_client: RumqttCustomAsyncClient) -> anyhow::Result<()> {
         // Determine the port name from configuration
         let port_name = match &self.config.endpoint {
             Some(endpoint) => {
@@ -92,9 +92,7 @@ impl SerialPortDriver for StandardDriver {
                     name.clone()
                 } else if let Some(usb_config) = &endpoint.usb {
                     // Try to find the port by USB configuration
-                    let available_ports = serialport::available_ports().map_err(|e| {
-                        DriverError::Generic(format!("Failed to list available ports: {}", e))
-                    })?;
+                    let available_ports = serialport::available_ports()?;
 
                     let mut matching_port = None;
                     for port_info in available_ports {
@@ -116,19 +114,13 @@ impl SerialPortDriver for StandardDriver {
                         }
                     }
 
-                    matching_port.ok_or_else(|| {
-                        DriverError::Generic("No matching USB device found".to_string())
-                    })?
+                    matching_port.ok_or_else(|| anyhow!("No matching USB device found"))?
                 } else {
-                    return Err(DriverError::Generic(
-                        "No port name or USB configuration provided".to_string(),
-                    ));
+                    return Err(anyhow!("No port name or USB configuration provided"));
                 }
             }
             None => {
-                return Err(DriverError::Generic(
-                    "No endpoint configuration provided".to_string(),
-                ));
+                return Err(anyhow!("No endpoint configuration provided"));
             }
         };
 
@@ -141,9 +133,7 @@ impl SerialPortDriver for StandardDriver {
             .unwrap_or(115200);
 
         // Open the serial port
-        let port = SerialPort::open(&port_name, baud_rate).map_err(|e| {
-            DriverError::Generic(format!("Failed to open port {}: {}", port_name, e))
-        })?;
+        let port = SerialPort::open(&port_name, baud_rate)?;
 
         self.driver = Some(Arc::new(Mutex::new(port)));
         info!(
@@ -190,18 +180,12 @@ impl SerialPortDriver for StandardDriver {
         Ok(())
     }
     /// Shutdown the driver
-    async fn shutdown(&mut self) -> Result<(), DriverError> {
+    async fn shutdown(&mut self) -> anyhow::Result<()> {
         info!("Emulator Driver: shutdown");
         Ok(())
     }
 
-    async fn send(&mut self, _bytes: bytes::Bytes) -> Result<(), DriverError> {
+    async fn send(&mut self, _bytes: bytes::Bytes) -> anyhow::Result<()> {
         Ok(())
-    }
-
-    /// Set the MQTT client
-    ///
-    fn set_client(&mut self, client: RumqttCustomAsyncClient) {
-        self.client = Some(client);
     }
 }

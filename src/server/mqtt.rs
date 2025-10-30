@@ -95,8 +95,6 @@ impl MqttRunner {
 
     /// The main async task loop for the MQTT runner
     async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: MqttRunner) {
-        runner.driver.lock().await.set_client(runner.client.clone());
-
         // Subscribe to all relevant topics
         runner
             .client
@@ -140,7 +138,10 @@ impl MqttRunner {
     async fn initialize(&self) {
         let mut driver = self.driver.lock().await;
 
-        driver.initialize().await.expect("Driver init failed");
+        driver
+            .initialize(self.client.clone())
+            .await
+            .expect("Driver init failed");
     }
 
     // --------------------------------------------------------------------------------
