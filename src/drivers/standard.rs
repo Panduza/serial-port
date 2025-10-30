@@ -181,13 +181,28 @@ impl SerialPortDriver for StandardDriver {
 
         Ok(())
     }
+
     /// Shutdown the driver
     async fn shutdown(&mut self) -> anyhow::Result<()> {
         info!("Emulator Driver: shutdown");
         Ok(())
     }
 
-    async fn send(&mut self, _bytes: bytes::Bytes) -> anyhow::Result<()> {
-        Ok(())
+    async fn send(&mut self, bytes: bytes::Bytes) -> anyhow::Result<()> {
+        if let Some(driver) = &self.driver {
+            let mut port = driver.lock().await;
+            use tokio::io::AsyncWriteExt;
+
+            // Write the bytes to the serial port
+            port.write_all(&bytes).await?;
+
+            // Ensure the data is sent immediately
+            port.flush().await?;
+
+            info!("Sent {} bytes to serial port", bytes.len());
+            Ok(())
+        } else {
+            Err(anyhow!("Serial port not initialized"))
+        }
     }
 }

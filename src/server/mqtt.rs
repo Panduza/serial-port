@@ -28,17 +28,7 @@ pub struct MqttRunner {
     topic_error: String,
 
     /// psu/{name}/control/oe
-    topic_control_oe: String,
-    /// psu/{name}/control/oe/cmd"
-    topic_control_oe_cmd: String,
-
-    /// psu/{name}/control/voltage/cmd
-    topic_control_voltage_cmd: String,
-
-    /// psu/{name}/measure/voltage/refresh_freq
-    topic_measure_voltage_refresh_freq: String,
-    /// psu/{name}/measure/current/refresh_freq
-    topic_measure_current_refresh_freq: String,
+    topic_tx: String,
 }
 
 impl MqttRunner {
@@ -64,13 +54,8 @@ impl MqttRunner {
             driver,
             topic_status: custom_client.topic_with_prefix("status"),
             topic_error: custom_client.topic_with_prefix("error"),
-            topic_control_oe: custom_client.topic_with_prefix("control/oe"),
-            topic_control_oe_cmd: custom_client.topic_with_prefix("control/oe/cmd"),
-            topic_control_voltage_cmd: custom_client.topic_with_prefix("control/voltage/cmd"),
-            topic_measure_voltage_refresh_freq: custom_client
-                .topic_with_prefix("measure/voltage/refresh_freq"),
-            topic_measure_current_refresh_freq: custom_client
-                .topic_with_prefix("measure/current/refresh_freq"),
+
+            topic_tx: custom_client.topic_with_prefix("tx"),
 
             client: custom_client,
         };
@@ -87,7 +72,7 @@ impl MqttRunner {
         // Subscribe to all relevant topics
         runner
             .client
-            .subscribe_to_all(vec![runner.topic_control_oe_cmd.clone()])
+            .subscribe_to_all(vec![runner.topic_tx.clone()])
             .await;
 
         runner.initialize().await;
@@ -123,110 +108,15 @@ impl MqttRunner {
 
     // --------------------------------------------------------------------------------
 
-    /// Handle output enable/disable commands
-    async fn handle_output_enable_command(&self, payload: Bytes) {
-        // Handle ON/OFF payload
-        let cmd = String::from_utf8(payload.to_vec()).unwrap();
-        let mut driver = self.driver.lock().await;
-        if cmd == "ON" {
-            // driver
-            //     .enable_output()
-            //     .await
-            //     .expect("Failed to enable output");
-        } else if cmd == "OFF" {
-            // driver
-            //     .disable_output()
-            //     .await
-            //     .expect("Failed to disable output");
-        } else {
-            // Invalid command
-            self.client
-                .client
-                .publish(
-                    self.topic_control_oe.clone(),
-                    rumqttc::QoS::AtLeastOnce,
-                    true,
-                    Bytes::from("ERROR"),
-                )
-                .await
-                .unwrap();
-            return;
-        }
-
-        // Wait a bit for the device to process the command
-        tokio::time::sleep(Duration::from_millis(200)).await;
-
-        // // Read back the actual output enable state to confirm
-        // let oe_value = driver.output_enabled().await.expect("Failed to get state");
-        // let payload_back = Bytes::from(if oe_value { "ON" } else { "OFF" });
-
-        // // Confirm the new state by publishing it
-        // self.client
-        //     .publish(
-        //         self.topic_control_oe.clone(),
-        //         rumqttc::QoS::AtLeastOnce,
-        //         true,
-        //         payload_back,
-        //     )
-        //     .await
-        //     .unwrap();
-    }
-
-    // --------------------------------------------------------------------------------
-
-    /// Handle voltage setting commands
-    async fn handle_voltage_command(&self, payload: Bytes) {
-        let cmd = String::from_utf8(payload.to_vec()).unwrap();
-        let mut driver = self.driver.lock().await;
-        // driver
-        //     .set_voltage(cmd)
-        //     .await
-        //     .expect("Failed to set voltage");
-
-        // // Wait a bit for the device to process the command
-        // tokio::time::sleep(Duration::from_millis(200)).await;
-
-        // // Read back the actual set voltage to confirm
-        // let voltage = driver.get_voltage().await.expect("Failed to get voltage");
-        // let payload_back = Bytes::from(voltage);
-
-        // // Confirm the new state by publishing it
-        // self.client
-        //     .publish(
-        //         self.topic_control_voltage.clone(),
-        //         rumqttc::QoS::AtLeastOnce,
-        //         true,
-        //         payload_back,
-        //     )
-        //     .await
-        //     .unwrap();
-    }
-
-    // --------------------------------------------------------------------------------
-
     /// Handle incoming MQTT messages
     /// TODO => handle error return here
     async fn handle_incoming_message(&self, topic: &String, payload: Bytes) {
         // ON/OFF Output Enable
-        if topic.eq(&self.topic_control_oe_cmd) {
-            self.handle_output_enable_command(payload).await;
-        }
-        // Set Voltage
-        else if topic.eq(&self.topic_control_voltage_cmd) {
-            self.handle_voltage_command(payload).await;
-        }
-        // Set Measurement Refresh Frequencies
-        else if topic.eq(&self.topic_measure_voltage_refresh_freq) {
-            let cmd = String::from_utf8(payload.to_vec()).unwrap();
-            if let Ok(_freq) = cmd.parse::<u64>() {
-                // Set voltage measurement refresh frequency
-                // (Implementation depends on the driver capabilities)
-            }
-        } else if topic.eq(&self.topic_measure_current_refresh_freq) {
-            let cmd = String::from_utf8(payload.to_vec()).unwrap();
-            if let Ok(_freq) = cmd.parse::<u64>() {
-                // Set current measurement refresh frequency
-                // (Implementation depends on the driver capabilities)
+        if topic.eq(&self.topic_tx) {
+            let mut driver = self.driver.lock().await;
+
+            if let Err(e) = driver.send(payload).await {
+                tracing::error!("Error sending data to serial port: {}", e);
             }
         }
     }
