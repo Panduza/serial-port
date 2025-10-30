@@ -25,19 +25,15 @@ use crate::client::SerialPortClientBuilder;
 use crate::config::ServerMainConfig;
 
 #[derive(Serialize, Deserialize, JsonSchema)]
-struct VoltageParams {
-    voltage: String,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema)]
-struct CurrentParams {
-    current: String,
-}
-
-#[derive(Serialize, Deserialize, JsonSchema)]
-struct SendDataParams {
+struct SendBytesParams {
     /// Data to send, encoded as hexadecimal string (e.g., "48656c6c6f" for "Hello")
     data: String,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+struct SendTextParams {
+    /// Text data to send to the serial port
+    text: String,
 }
 
 #[derive(Clone)]
@@ -83,104 +79,13 @@ impl PowerSupplyService {
 impl PowerSupplyService {
     //--------------------------------------------------------------------------
 
-    // /// Get the current output enable status of the power supply
-    // #[tool(description = "Get the current output enable status of the power supply")]
-    // async fn output_enable_get(&self) -> Result<CallToolResult, McpError> {
-    //     debug!("MCP tool 'output_enable_get' called");
-
-    //     info!("Retrieved output enable status: {}", self.output_enable);
-    //     Ok(CallToolResult::success(vec![Content::text(format!(
-    //         "Output enable status: {}",
-    //         self.output_enable
-    //     ))]))
-    // }
-
-    //--------------------------------------------------------------------------
-
-    // /// Enable the power supply output
-    // #[tool(description = "Enable the power supply output (turn on power)")]
-    // async fn output_enable(&self) -> Result<CallToolResult, McpError> {
-    //     let client = {
-    //         let psu_state = self.state.lock().await;
-    //         psu_state.client.clone()
-    //     };
-
-    //     client.enable_output().await.map_err(|_e| {
-    //         McpError::new(
-    //             ErrorCode::INTERNAL_ERROR,
-    //             "Failed to enable power supply output",
-    //             None,
-    //         )
-    //     })?;
-
-    //     info!("Successfully enabled power supply output");
-    //     Ok(CallToolResult::success(vec![Content::text(
-    //         "Power supply output enabled".to_string(),
-    //     )]))
-    // }
-
-    //--------------------------------------------------------------------------
-
-    // /// Disable the power supply output
-    // #[tool(description = "Disable the power supply output (turn off power)")]
-    // async fn output_disable(&self) -> Result<CallToolResult, McpError> {
-    //     let client = {
-    //         let psu_state = self.state.lock().await;
-    //         psu_state.client.clone()
-    //     };
-
-    //     client.disable_output().await.map_err(|_e| {
-    //         McpError::new(
-    //             ErrorCode::INTERNAL_ERROR,
-    //             "Failed to disable power supply output",
-    //             None,
-    //         )
-    //     })?;
-
-    //     info!("Successfully disabled power supply output");
-    //     Ok(CallToolResult::success(vec![Content::text(
-    //         "Power supply output disabled".to_string(),
-    //     )]))
-    // }
-
-    //--------------------------------------------------------------------------
-
-    // /// Set the output voltage of the power supply
-    // #[tool(
-    //     description = "Set the output voltage of the power supply. Takes voltage as a string, e.g., '5.0'"
-    // )]
-    // async fn set_voltage(
-    //     &self,
-    //     params: Parameters<VoltageParams>,
-    // ) -> Result<CallToolResult, McpError> {
-    //     let voltage = &params.0.voltage;
-    //     let client = {
-    //         let psu_state = self.state.lock().await;
-    //         psu_state.client.clone()
-    //     };
-
-    //     client.set_voltage(voltage.clone()).await.map_err(|_e| {
-    //         McpError::new(
-    //             ErrorCode::INTERNAL_ERROR,
-    //             "Failed to set power supply voltage",
-    //             None,
-    //         )
-    //     })?;
-
-    //     info!("Successfully set power supply voltage to {}", voltage);
-    //     Ok(CallToolResult::success(vec![Content::text(format!(
-    //         "Power supply voltage set to {}",
-    //         voltage
-    //     ))]))
-    // }
-
     /// Send data to the serial port
     #[tool(
         description = "Send byte data to the serial port. Data should be provided as a hexadecimal string (e.g., '48656c6c6f' for 'Hello')"
     )]
     async fn send_byte_data(
         &self,
-        params: Parameters<SendDataParams>,
+        params: Parameters<SendBytesParams>,
     ) -> Result<CallToolResult, McpError> {
         let hex_data = &params.0.data;
         let client = {
@@ -217,6 +122,44 @@ impl PowerSupplyService {
             "Sent {} bytes to serial port: {}",
             bytes_to_send.len(),
             hex_data
+        ))]))
+    }
+
+    /// Send text data to the serial port
+    #[tool(
+        description = "Send text data to the serial port. The text will be converted to bytes using UTF-8 encoding."
+    )]
+    async fn send_text_data(
+        &self,
+        params: Parameters<SendTextParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let text_data = &params.0.text;
+        let client = {
+            let psu_state = self.state.lock().await;
+            psu_state.client.clone()
+        };
+
+        // Convert text to bytes using UTF-8 encoding
+        let bytes_to_send = bytes::Bytes::from(text_data.as_bytes().to_vec());
+
+        // Send the data via the SerialPortClient
+        client.send(bytes_to_send.clone()).await.map_err(|e| {
+            McpError::new(
+                ErrorCode::INTERNAL_ERROR,
+                format!("Failed to send text to serial port: {}", e),
+                None,
+            )
+        })?;
+
+        info!(
+            "Successfully sent {} bytes of text to serial port: '{}'",
+            bytes_to_send.len(),
+            text_data
+        );
+        Ok(CallToolResult::success(vec![Content::text(format!(
+            "Sent {} bytes of text to serial port: '{}'",
+            bytes_to_send.len(),
+            text_data
         ))]))
     }
 }
