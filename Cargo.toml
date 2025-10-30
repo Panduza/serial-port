@@ -1,0 +1,114 @@
+[package]
+name = "pza-serial-port"
+version = "0.1.0"
+authors = ["XdoctorwhoZ <xavier.rodriguezalvarez@gmail.com>"]
+edition = "2021"
+description = "Panduza Serial Port Server - MQTT broker and device management"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+hex = "0.4.3"
+once_cell = "1.21.3"
+# ---
+# Trait for async functions in traits
+async-trait = { version = "0.1.89" }
+# ---
+# HTTP web framework
+axum = { version = "0.8", features = ["macros"] }
+# ---
+# Bytes manipulation utilities
+bytes = "1.10.1"
+# ---
+# Configuration management library
+config = "0.15.17"
+# ---
+# Cross-platform GUI framework
+# dioxus = { version = "0.7.0-rc.3", features = [] }
+dioxus = { version = "0.6.3", features = [] }
+# ---
+# Logging for Dioxus applications
+dioxus-logger = "0.6.2"
+# ---
+# Platform-specific directory paths
+dirs = "6.0.0"
+# ---
+# Local toolkit dependency
+# pza-toolkit = { path = "../toolkit" }
+pza-toolkit = { git = "https://github.com/Panduza/toolkit", tag = "0.1.1" }
+# ---
+# Random string generator
+rand = "0.8.5"
+# ---
+# Model Context Protocol implementation
+rmcp = { version = "0.7.0", features = [
+    "server",
+    "macros",
+    "transport-sse-server",
+    "transport-io",
+    "transport-streamable-http-server",
+    "auth",
+    "elicitation",
+    "schemars",
+] }
+# ---
+# MQTT async client
+rumqttc = "0.25.0"
+# ---
+# MQTT Broker
+rumqttd = { git = "https://github.com/Panduza/rumqtt", tag = "0.1.0" }
+# ---
+# JSON schema generation
+schemars = "1.0"
+# ---
+# Serialization framework
+serde = { version = "1.0.188", features = ["derive"] }
+# ---
+# JSON serialization for serde
+serde_json = "1.0.107"
+# ---
+# JSON5 serialization for serde
+serde_json5 = "0.2.1"
+# ---
+# Serial port communication library
+serial2-tokio = "0.1.13"
+# ---
+# Just for the available port feature
+# Problem with recent versions of dioxus
+serialport = { version = "4.8.1" }
+# ---
+# Error handling library
+thiserror = "2.0.17"
+# ---
+# Async runtime
+tokio = { version = "1.48.0", features = ["full"] }
+# ---
+# HTTP middleware and utilities
+tower-http = { version = "0.6", features = ["cors"] }
+# ---
+# Structured logging framework
+tracing = "0.1.37"
+# ---
+# Tracing subscriber for log formatting
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+anyhow = "1.0.100"
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
