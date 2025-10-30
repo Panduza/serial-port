@@ -84,6 +84,8 @@ impl StandardDriver {
 impl SerialPortDriver for StandardDriver {
     /// Initialize the driver
     async fn initialize(&mut self, mqtt_client: RumqttCustomAsyncClient) -> anyhow::Result<()> {
+        self.client = Some(mqtt_client);
+
         // Determine the port name from configuration
         let port_name = match &self.config.endpoint {
             Some(endpoint) => {

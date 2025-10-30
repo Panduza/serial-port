@@ -33,6 +33,9 @@ impl SerialPortDriver for PowerSupplyEmulator {
     /// Initialize the driver
     async fn initialize(&mut self, mqtt_client: RumqttCustomAsyncClient) -> anyhow::Result<()> {
         info!("Emulator Driver: initialize");
+
+        self.client = Some(mqtt_client);
+
         Ok(())
     }
     /// Shutdown the driver
