@@ -1,9 +1,7 @@
 use crate::client::{SerialPortClient, SerialPortClientBuilder};
 use crate::{ServerState, SERVER_STATE_STORAGE};
 use dioxus::prelude::*;
-use std::process::Command;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::error;
 
 // mod button_power;
@@ -32,10 +30,12 @@ pub fn Gui() -> Element {
     });
 
     // Signals
-    // let mut s_client: Signal<Option<Arc<Mutex<SerialPortClient>>>> = use_signal(|| None);
+    let s_received_data = use_signal(|| String::new());
+    let s_client: Signal<Option<SerialPortClient>> = use_signal(|| None);
 
-    // Coroutine to load configuration from server state
-    let _coro: Coroutine<()> = use_coroutine({
+    // Coroutine to load configuration from server state and create client
+    let _init_coro: Coroutine<()> = use_coroutine({
+        let mut s_client = s_client.clone();
         move |_rx| async move {
             // Get server state from context
             let server_state: Arc<ServerState> = use_context();
@@ -50,42 +50,107 @@ pub fn Gui() -> Element {
                 .cloned()
                 .collect();
 
-            let client = SerialPortClient::builder()
+            match SerialPortClient::builder()
                 .with_ip(addr.clone().expect("address not set").clone())
                 .with_power_supply_name(names.get(0).cloned().expect("at least a name"))
                 .build()
-                .unwrap();
+            {
+                Ok(client) => {
+                    s_client.set(Some(client));
+                }
+                Err(e) => {
+                    error!("Failed to create SerialPortClient: {}", e);
+                }
+            }
+        }
+    });
 
-            // match client {
-            //     Ok(c) => {
-            //         let arc_client = Arc::new(Mutex::new(c));
-            //         s_client.set(Some(arc_client));
-            //     }
-            //     Err(e) => {
-            //         error!("Failed to create SerialPortClient: {}", e);
-            //     }
-            // }
+    // Coroutine to listen to the rx channel and update received data
+    let _rx_coro: Coroutine<()> = use_coroutine({
+        let mut s_received_data = s_received_data.clone();
+        let s_client = s_client.clone();
+        move |_rx| async move {
+            loop {
+                if let Some(client) = s_client.read().as_ref() {
+                    let mut rx_channel = client.subscribe_rx();
+
+                    while let Ok(data) = rx_channel.recv().await {
+                        // Convert bytes to string and append to received data
+                        if let Ok(text) = String::from_utf8(data.to_vec()) {
+                            s_received_data.with_mut(|current_data| {
+                                current_data.push_str(&text);
+                                // Optionally limit the size to prevent memory issues
+                                if current_data.len() > 10000 {
+                                    let start = current_data.len() - 8000;
+                                    *current_data = current_data[start..].to_string();
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    // Wait a bit before checking again if client is available
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                }
+            }
         }
     });
 
     rsx! {
-            document::Link { rel: "icon", href: FAVICON }
+        document::Link { rel: "icon", href: FAVICON }
 
+        div {
+            class: "main-container min-h-screen bg-slate-900",
 
+            header {
+                class: "flex justify-between items-center p-4 bg-slate-800 border-b border-slate-700",
 
-            div {
-                class: "main-container",
+                h1 {
+                    class: "text-2xl font-bold text-white",
+                    "Panduza Serial Port"
+                }
+            }
 
-                header {
-                    class: "flex justify-between items-center p-4 bg-slate-800 border-b border-slate-700",
+            main {
+                class: "p-4",
 
-                    h1 {
-                        class: "text-2xl font-bold text-white",
-                        "Panduza Serial Port"
+                div {
+                    class: "bg-slate-800 rounded-lg p-4 mb-4",
+
+                    h2 {
+                        class: "text-lg font-semibold text-white mb-2",
+                        "Données série reçues"
                     }
-                // main {
-                //     PowerSupplyControl {}
-                // }
+
+                    div {
+                        class: "bg-black text-green-400 font-mono text-sm p-4 rounded border h-96 overflow-y-auto whitespace-pre-wrap",
+                        style: "max-height: 400px;",
+                        "{s_received_data.read()}"
+                    }
+                }
+
+                div {
+                    class: "bg-slate-800 rounded-lg p-4",
+
+                    h2 {
+                        class: "text-lg font-semibold text-white mb-2",
+                        "État de la connexion"
+                    }
+
+                    div {
+                        class: "text-sm",
+                        if s_client.read().is_some() {
+                            span {
+                                class: "text-green-400",
+                                "✓ Client connecté"
+                            }
+                        } else {
+                            span {
+                                class: "text-red-400",
+                                "✗ Client non connecté"
+                            }
+                        }
+                    }
+                }
             }
         }
     }
