@@ -1,81 +1,30 @@
-use crate::config::ServerMainConfig;
-
 use bytes::Bytes;
-use rand::Rng;
-use rumqttc::{AsyncClient, MqttOptions};
-
-use pza_toolkit::config::IPEndpointConfig;
-use pza_toolkit::rumqtt::client::init_client;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
+use rumqttc::AsyncClient;
 use tokio::sync::broadcast;
 
-// mod data;
-// pub use data::MutableData;
-
-// mod error;
-// pub use error::ClientError;
-
-#[derive(Default)]
-/// Builder pattern for creating SerialPortClient instances
-pub struct SerialPortClientBuilder {
-    /// Name of the power supply unit
-    pub psu_name: Option<String>,
-
-    /// MQTT broker configuration
-    pub ip: Option<IPEndpointConfig>,
-}
-
-impl SerialPortClientBuilder {
-    // ------------------------------------------------------------------------
-
-    /// Create a new builder from broker configuration
-    pub fn with_ip(mut self, ip: IPEndpointConfig) -> Self {
-        self.ip = Some(ip);
-        self
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Set the power supply name for the client
-    pub fn with_power_supply_name<A: Into<String>>(mut self, name: A) -> Self {
-        self.psu_name = Some(name.into());
-        self
-    }
-
-    // ------------------------------------------------------------------------
-
-    /// Build the SerialPortClient instance
-    pub fn build(self) -> anyhow::Result<SerialPortClient> {
-        let (client, event_loop) = init_client("serial-port");
-
-        Ok(SerialPortClient::new_with_client(
-            self.psu_name.unwrap(),
-            client,
-            event_loop,
-        ))
-    }
-}
+pub mod builder;
+pub use builder::SerialPortClientBuilder;
 
 /// Client for interacting with a power supply via MQTT
 pub struct SerialPortClient {
-    pub psu_name: String,
+    /// Name of the serial port instance
+    pub instance_name: String,
 
+    /// MQTT client
     mqtt_client: RumqttCustomAsyncClient,
 
-    // send ok
-    // receive => channel for real time notifications
-    // data buffering (with a size) to allow AI to query recent data
-    //
+    /// Channel for receiving output current updates
     rx_channel: (broadcast::Sender<Bytes>, broadcast::Receiver<Bytes>),
 
-    ///
+    /// Topic for receiving MQTT messages
     topic_rx: String,
 }
 
 impl Clone for SerialPortClient {
     fn clone(&self) -> Self {
         Self {
-            psu_name: self.psu_name.clone(),
+            instance_name: self.instance_name.clone(),
             mqtt_client: self.mqtt_client.clone(),
             rx_channel: (self.rx_channel.0.clone(), self.rx_channel.1.resubscribe()),
             topic_rx: self.topic_rx.clone(),
@@ -84,15 +33,11 @@ impl Clone for SerialPortClient {
 }
 
 impl SerialPortClient {
-    /// Subscribe to all relevant MQTT topics
-    async fn subscribe_to_all(client: AsyncClient, topics: Vec<String>) {
-        for topic in topics {
-            client
-                .subscribe(topic, rumqttc::QoS::AtMostOnce)
-                .await
-                .unwrap();
-        }
+    /// Create a new SerialPortClient builder
+    pub fn builder() -> SerialPortClientBuilder {
+        SerialPortClientBuilder::default()
     }
+
     /// Task loop to handle MQTT events and update client state
     async fn task_loop(
         client: SerialPortClient,
@@ -122,7 +67,10 @@ impl SerialPortClient {
                                 let topic = packet.topic;
                                 let payload = packet.payload;
 
-                                client.handle_incoming_message(&topic, payload).await;
+                                client
+                                    .handle_incoming_message(&topic, payload)
+                                    .await
+                                    .expect("error handling incoming message    ");
                             }
 
                             _ => {}
@@ -147,53 +95,30 @@ impl SerialPortClient {
     // ------------------------------------------------------------------------
 
     /// Handle incoming MQTT messages and update internal state
-    async fn handle_incoming_message(&self, topic: &String, payload: Bytes) {
-        // if topic == &self.topic_control_oe {
-        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-        //     let enabled = msg.trim().eq_ignore_ascii_case("ON");
+    async fn handle_incoming_message(&self, topic: &String, payload: Bytes) -> anyhow::Result<()> {
+        if topic == &self.topic_rx {
+            self.rx_channel.0.send(payload)?;
+            //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
+            //     let enabled = msg.trim().eq_ignore_ascii_case("ON");
 
-        //     // Update internal state
-        //     {
-        //         let mut data = self.mutable_data.lock().await;
-        //         data.enabled = enabled;
-        //     }
+            //     // Update internal state
+            //
+            //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
+            //     let current_str = msg.trim().to_string();
 
-        //     // Trigger all OE callbacks
-        //     let callbacks = self.callbacks.lock().await;
-        //     for callback in callbacks.oe_callbacks.values() {
-        //         callback(enabled).await;
-        //     }
-        // } else if topic == &self.topic_control_voltage {
-        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-        //     let voltage_str = msg.trim().to_string();
+            //     // Update internal state
+            //     {
+            //         let mut data = self.mutable_data.lock().await;
+            //         data.current = current_str.clone();
+            //     }
 
-        //     // Update internal state
-        //     {
-        //         let mut data = self.mutable_data.lock().await;
-        //         data.voltage = voltage_str.clone();
-        //     }
-
-        //     // Trigger all voltage callbacks
-        //     let callbacks = self.callbacks.lock().await;
-        //     for callback in callbacks.voltage_callbacks.values() {
-        //         callback(voltage_str.clone()).await;
-        //     }
-        // } else if topic == &self.topic_control_current {
-        //     let msg = String::from_utf8(payload.to_vec()).unwrap_or_default();
-        //     let current_str = msg.trim().to_string();
-
-        //     // Update internal state
-        //     {
-        //         let mut data = self.mutable_data.lock().await;
-        //         data.current = current_str.clone();
-        //     }
-
-        //     // Trigger all current callbacks
-        //     let callbacks = self.callbacks.lock().await;
-        //     for callback in callbacks.current_callbacks.values() {
-        //         callback(current_str.clone()).await;
-        //     }
-        // }
+            //     // Trigger all current callbacks
+            //     let callbacks = self.callbacks.lock().await;
+            //     for callback in callbacks.current_callbacks.values() {
+            //         callback(current_str.clone()).await;
+            //     }
+        }
+        Ok(())
     }
 
     // ------------------------------------------------------------------------
@@ -218,7 +143,7 @@ impl SerialPortClient {
         let (channel_tx, channel_rx) = broadcast::channel(32);
 
         let obj = Self {
-            psu_name,
+            instance_name: psu_name,
             topic_rx: cccc.topic_with_prefix("rx"),
             mqtt_client: cccc,
 
@@ -233,5 +158,9 @@ impl SerialPortClient {
         obj
     }
 
+    /// Subscribe to output current state changes
+    pub fn subscribe_rx(&self) -> broadcast::Receiver<Bytes> {
+        self.rx_channel.0.subscribe()
+    }
     // ------------------------------------------------------------------------
 }

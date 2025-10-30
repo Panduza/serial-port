@@ -1,6 +1,5 @@
 use crate::{constants, drivers::SerialPortDriver};
 use bytes::Bytes;
-use rumqttc::{AsyncClient, MqttOptions};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
@@ -33,15 +32,8 @@ pub struct MqttRunner {
     /// psu/{name}/control/oe/cmd"
     topic_control_oe_cmd: String,
 
-    /// psu/{name}/control/voltage
-    topic_control_voltage: String,
     /// psu/{name}/control/voltage/cmd
     topic_control_voltage_cmd: String,
-
-    /// psu/{name}/control/voltage
-    topic_control_current: String,
-    /// psu/{name}/control/current/cmd
-    topic_control_current_cmd: String,
 
     /// psu/{name}/measure/voltage/refresh_freq
     topic_measure_voltage_refresh_freq: String,
@@ -74,10 +66,7 @@ impl MqttRunner {
             topic_error: custom_client.topic_with_prefix("error"),
             topic_control_oe: custom_client.topic_with_prefix("control/oe"),
             topic_control_oe_cmd: custom_client.topic_with_prefix("control/oe/cmd"),
-            topic_control_voltage: custom_client.topic_with_prefix("control/voltage"),
             topic_control_voltage_cmd: custom_client.topic_with_prefix("control/voltage/cmd"),
-            topic_control_current: custom_client.topic_with_prefix("control/current"),
-            topic_control_current_cmd: custom_client.topic_with_prefix("control/current/cmd"),
             topic_measure_voltage_refresh_freq: custom_client
                 .topic_with_prefix("measure/voltage/refresh_freq"),
             topic_measure_current_refresh_freq: custom_client
@@ -117,18 +106,6 @@ impl MqttRunner {
                     rumqttc::Event::Outgoing(_outgoing) => {}
                 }
             }
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-
-    /// Subscribe to all relevant MQTT topics
-    async fn subscribe_to_all(client: AsyncClient, topics: Vec<&String>) {
-        for topic in topics {
-            client
-                .subscribe(topic, rumqttc::QoS::AtMostOnce)
-                .await
-                .unwrap();
         }
     }
 
