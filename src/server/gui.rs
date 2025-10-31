@@ -16,7 +16,7 @@ use tracing::error;
 // use device_selector::DeviceSelector;
 // use voltage_setter::VoltageSetter;
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
+const FAVICON: Asset = asset!("/assets/icons/icon.ico");
 // const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 #[component]
@@ -78,7 +78,13 @@ pub fn Gui() -> Element {
                         // Convert bytes to string and append to received data
                         if let Ok(text) = String::from_utf8(data.to_vec()) {
                             s_received_data.with_mut(|current_data| {
-                                current_data.push_str(&text);
+                                // Process text to handle line endings properly
+                                let processed_text = text
+                                    .replace("\r\n", "\n") // Windows line ending to Unix
+                                    .replace("\r", "\n"); // Mac line ending to Unix
+
+                                current_data.push_str(&processed_text);
+
                                 // Optionally limit the size to prevent memory issues
                                 if current_data.len() > 10000 {
                                     let start = current_data.len() - 8000;
@@ -123,7 +129,7 @@ pub fn Gui() -> Element {
 
                     div {
                         class: "bg-black text-green-400 font-mono text-sm p-4 rounded border h-96 overflow-y-auto whitespace-pre-wrap",
-                        style: "max-height: 400px;",
+                        style: "max-height: 400px; white-space: pre-wrap; word-wrap: break-word;",
                         "{s_received_data.read()}"
                     }
                 }
