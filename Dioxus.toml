@@ -1,7 +1,5 @@
 [application]
 
-# App icon
-icon = ["assets/icons/icon.ico"]
 
 [web.app]
 
@@ -22,3 +20,7 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[bundle]
+identifier = "com.panduza"
+publisher = "Panduza"
