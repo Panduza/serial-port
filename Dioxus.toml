@@ -1,5 +1,8 @@
 [application]
 
+# App icon
+icon = ["assets/icons/icon.ico"]
+
 [web.app]
 
 # HTML title tag content

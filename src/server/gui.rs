@@ -16,7 +16,7 @@ use tracing::error;
 // use device_selector::DeviceSelector;
 // use voltage_setter::VoltageSetter;
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
+const FAVICON: Asset = asset!("/assets/icons/icon.ico");
 // const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 #[component]
