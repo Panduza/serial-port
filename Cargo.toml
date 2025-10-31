@@ -35,8 +35,8 @@ dioxus-logger = "0.6.2"
 dirs = "6.0.0"
 # ---
 # Local toolkit dependency
-# pza-toolkit = { path = "../toolkit" }
-pza-toolkit = { git = "https://github.com/Panduza/toolkit", tag = "0.1.1" }
+pza-toolkit = { path = "../toolkit" }
+# pza-toolkit = { git = "https://github.com/Panduza/toolkit", tag = "0.1.1" }
 # ---
 # Random string generator
 rand = "0.8.5"

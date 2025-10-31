@@ -30,11 +30,12 @@ fn main() {
     // Init logger
     LoggerBuilder::default()
         .with_level(Level::TRACE)
-        // .display_target(true)
+        .display_target(false)
         .filter_rumqttd()
         .filter_dioxus_core()
         .filter_dioxus_signals()
         .filter_warnings()
+        .filter_rmcp()
         .build()
         .expect("failed to init logger");
 

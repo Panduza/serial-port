@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use std::sync::Arc;
+use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 
 use anyhow::anyhow;
@@ -7,10 +8,10 @@ use tracing::info;
 
 use crate::config::SerialPortConfig;
 use crate::drivers::SerialPortDriver;
-use serial2_tokio::SerialPort;
-
 use pza_toolkit::config::UsbEndpointConfig;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
+use serial2_tokio::SerialPort;
+use tracing::debug;
 ///
 pub struct StandardDriver {
     /// Configuration
@@ -19,6 +20,9 @@ pub struct StandardDriver {
     driver: Option<Arc<Mutex<SerialPort>>>,
 
     client: Option<RumqttCustomAsyncClient>,
+
+    // Channel for sending data to the serial port
+    tx_sender: Option<mpsc::UnboundedSender<bytes::Bytes>>,
 }
 
 impl StandardDriver {
@@ -28,6 +32,7 @@ impl StandardDriver {
             config,
             driver: None,
             client: None,
+            tx_sender: None,
         }
     }
 
@@ -143,36 +148,69 @@ impl SerialPortDriver for StandardDriver {
             port_name, baud_rate
         );
 
-        // Spawn a task for continuous reading from the serial port
+        // Create channel for sending data
+        let (tx_sender, mut tx_receiver) = mpsc::unbounded_channel::<bytes::Bytes>();
+        self.tx_sender = Some(tx_sender);
+
+        // Spawn a unified task for both reading and writing to/from the serial port
         if let (Some(driver), Some(client)) = (self.driver.clone(), self.client.clone()) {
             tokio::spawn(async move {
-                let mut buffer = [0u8; 1024];
+                let mut read_buffer = [0u8; 1024];
+
                 loop {
-                    // Lock the driver to read from the serial port
-                    let mut read_result = {
-                        let mut port = driver.lock().await;
-                        use tokio::io::AsyncReadExt;
-                        port.read(&mut buffer).await
-                    };
+                    tokio::select! {
+                        // Handle incoming data to send to serial port
+                        data_to_send = tx_receiver.recv() => {
+                            if let Some(data) = data_to_send {
+                                let mut port = driver.lock().await;
+                                use tokio::io::AsyncWriteExt;
 
-                    match read_result {
-                        Ok(bytes_read) if bytes_read > 0 => {
-                            // Convert the read data to bytes and publish via MQTT
-                            let data = bytes::Bytes::copy_from_slice(&buffer[..bytes_read]);
-                            let topic = client.topic_with_prefix("rx");
-
-                            if let Err(e) = client.publish(topic, data.to_vec()).await {
-                                tracing::error!("Failed to publish serial data to MQTT: {}", e);
+                                if let Err(e) = port.write_all(&data).await {
+                                    tracing::error!("Error writing to serial port: {}", e);
+                                } else if let Err(e) = port.flush().await {
+                                    tracing::error!("Error flushing serial port: {}", e);
+                                } else {
+                                    info!("Sent {} bytes to serial port", data.len());
+                                }
+                                drop(port); // Release the lock explicitly
+                            } else {
+                                // Channel closed, exit
+                                break;
                             }
                         }
-                        Ok(_) => {
-                            // No data read, continue loop
-                            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-                        }
-                        Err(e) => {
-                            tracing::error!("Error reading from serial port: {}", e);
-                            // Sleep before retrying to avoid busy loop
-                            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+                        // Handle reading from serial port (with timeout to avoid blocking)
+                        read_result = async {
+                            let port = driver.lock().await;
+                            use tokio::io::AsyncReadExt;
+                            let result = tokio::time::timeout(
+                                tokio::time::Duration::from_millis(10),
+                                port.read(&mut read_buffer)
+                            ).await;
+                            drop(port); // Release the lock explicitly
+                            result
+                        } => {
+                            match read_result {
+                                Ok(Ok(bytes_read)) if bytes_read > 0 => {
+                                    // Convert the read data to bytes and publish via MQTT
+                                    let data = bytes::Bytes::copy_from_slice(&read_buffer[..bytes_read]);
+                                    let topic = client.topic_with_prefix("rx");
+
+                                    if let Err(e) = client.publish(topic, data.to_vec()).await {
+                                        tracing::error!("Failed to publish serial data to MQTT: {}", e);
+                                    }
+                                }
+                                Ok(Ok(_)) => {
+                                    // No data read, continue loop
+                                }
+                                Ok(Err(e)) => {
+                                    tracing::error!("Error reading from serial port: {}", e);
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                                }
+                                Err(_) => {
+                                    // Timeout, continue loop (this is normal)
+                                }
+                            }
                         }
                     }
                 }
@@ -189,17 +227,15 @@ impl SerialPortDriver for StandardDriver {
     }
 
     async fn send(&mut self, bytes: bytes::Bytes) -> anyhow::Result<()> {
-        if let Some(driver) = &self.driver {
-            let mut port = driver.lock().await;
-            use tokio::io::AsyncWriteExt;
+        debug!("-- try sending serial data: {}", bytes.len());
 
-            // Write the bytes to the serial port
-            port.write_all(&bytes).await?;
+        if let Some(tx_sender) = &self.tx_sender {
+            // Send data through the channel to the unified task
+            tx_sender
+                .send(bytes.clone())
+                .map_err(|_| anyhow!("Failed to send data to serial port task"))?;
 
-            // Ensure the data is sent immediately
-            port.flush().await?;
-
-            info!("Sent {} bytes to serial port", bytes.len());
+            debug!("-- Queued {} bytes for serial transmission", bytes.len());
             Ok(())
         } else {
             Err(anyhow!("Serial port not initialized"))
