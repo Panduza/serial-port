@@ -6,6 +6,6 @@ Serial port control from **MCP** or **MQTT**
 
 </div>
 
-![banner](docs\banner.jpg)
+![banner](docs/banner.jpg)
 
 
