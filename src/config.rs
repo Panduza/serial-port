@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use tracing::{error, info};
 
+use crate::constants::DEFAULT_MCP_PORT;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GuiConfig {
     /// Enable or disable the GUI
@@ -71,9 +73,9 @@ impl Default for ServerMainConfig {
         Self {
             gui: GuiConfig { enable: true },
             mcp: McpServerConfig {
-                enable: false,
+                enable: true,
                 host: "127.0.0.1".to_string(),
-                port: 50051,
+                port: DEFAULT_MCP_PORT,
             },
             broker: MqttBrokerConfig::default(),
             devices: Some(devices),

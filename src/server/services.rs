@@ -37,7 +37,9 @@ pub async fn server_services(server_state: Arc<ServerState>) -> anyhow::Result<(
         if mcp_config.enable {
             let instance_names = server_state.instances_names().await;
             let ccc = server_state.server_config.as_ref().lock().await.clone();
-            McpServer::run(ccc, instance_names).await?;
+            McpServer::run(ccc, instance_names)
+                .await
+                .with_context(|| "Fail to start MCP server")?;
         } else {
             warn!("MCP server is disabled in configuration, not starting it.");
         }

@@ -26,10 +26,10 @@ impl McpServer {
     ///
     pub async fn run(config: ServerMainConfig, psu_names: Vec<String>) -> anyhow::Result<()> {
         // Bind and serve the application
-        let bind_address = "127.0.0.1:3000";
+        let bind_address = format!("{}:{}", config.mcp.host, config.mcp.port);
         let listener = TcpListener::bind(&bind_address).await?;
 
-        //
+        // Create the application router
         let mut app = Router::new().layer(CorsLayer::permissive());
 
         //
@@ -51,7 +51,7 @@ impl McpServer {
 
             // Log the endpoint
             tracing::info!(
-                "MCP server listening on {}{}",
+                "MCP server listening on http://{}{}",
                 bind_address,
                 format!("/{}/{}", crate::constants::SERVER_TYPE_NAME, &psu_name)
             );

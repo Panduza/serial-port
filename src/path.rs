@@ -6,8 +6,9 @@ use std::path::PathBuf;
 pub fn server_config_file() -> Option<PathBuf> {
     user_root_dir().map(|root| {
         root.join(format!(
-            "{}-server.json5",
-            crate::constants::CONFIG_FILE_NAME_PREFIX
+            "{}-{}-server.json5",
+            crate::constants::CONFIG_FILE_NAME_PREFIX,
+            crate::constants::SERVER_TYPE_NAME
         ))
     })
 }
@@ -17,19 +18,21 @@ pub fn server_config_file() -> Option<PathBuf> {
 pub fn factory_manifest_file() -> Option<PathBuf> {
     user_root_dir().map(|root| {
         root.join(format!(
-            "{}-factory.json5",
-            crate::constants::CONFIG_FILE_NAME_PREFIX
+            "{}-{}-factory.json5",
+            crate::constants::CONFIG_FILE_NAME_PREFIX,
+            crate::constants::SERVER_TYPE_NAME
         ))
     })
 }
 
-///
+/// Get the path to the scan file
 ///
 pub fn scan_file() -> Option<PathBuf> {
     user_root_dir().map(|root| {
         root.join(format!(
-            "{}-scan.json5",
-            crate::constants::CONFIG_FILE_NAME_PREFIX
+            "{}-{}-scan.json5",
+            crate::constants::CONFIG_FILE_NAME_PREFIX,
+            crate::constants::SERVER_TYPE_NAME
         ))
     })
 }
