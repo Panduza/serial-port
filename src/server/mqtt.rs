@@ -2,6 +2,7 @@ use crate::{constants, drivers::SerialPortDriver};
 use bytes::Bytes;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
+use tracing::trace;
 
 use pza_toolkit::rumqtt::client::{init_client, RumqttCustomAsyncClient};
 
@@ -113,6 +114,7 @@ impl MqttRunner {
     async fn handle_incoming_message(&self, topic: &String, payload: Bytes) {
         // ON/OFF Output Enable
         if topic.eq(&self.topic_tx) {
+            trace!("Received TX command on topic {}: {:?}", topic, payload);
             let mut driver = self.driver.lock().await;
 
             if let Err(e) = driver.send(payload).await {

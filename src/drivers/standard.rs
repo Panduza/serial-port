@@ -3,14 +3,14 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use anyhow::anyhow;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::config::SerialPortConfig;
 use crate::drivers::SerialPortDriver;
-use serial2_tokio::SerialPort;
-
 use pza_toolkit::config::UsbEndpointConfig;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
+use serial2_tokio::SerialPort;
+use tracing::debug;
 ///
 pub struct StandardDriver {
     /// Configuration
@@ -189,17 +189,24 @@ impl SerialPortDriver for StandardDriver {
     }
 
     async fn send(&mut self, bytes: bytes::Bytes) -> anyhow::Result<()> {
+        debug!("-- try sending serial data: {}", bytes.len());
+
         if let Some(driver) = &self.driver {
+            error!("--- -1");
             let mut port = driver.lock().await;
             use tokio::io::AsyncWriteExt;
 
+            error!("--- 0");
             // Write the bytes to the serial port
             port.write_all(&bytes).await?;
+            error!("--- 1");
 
             // Ensure the data is sent immediately
             port.flush().await?;
 
-            info!("Sent {} bytes to serial port", bytes.len());
+            error!("--- 2");
+
+            info!("-- Sent {} bytes to serial port", bytes.len());
             Ok(())
         } else {
             Err(anyhow!("Serial port not initialized"))

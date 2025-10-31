@@ -104,6 +104,8 @@ impl SerialPortClient {
     async fn handle_incoming_message(&self, topic: &String, payload: Bytes) -> anyhow::Result<()> {
         if topic == &self.topic_rx {
             self.rx_channel.0.send(payload)?;
+        } else if topic == &self.topic_tx {
+            self.tx_channel.0.send(payload)?;
         }
         Ok(())
     }
