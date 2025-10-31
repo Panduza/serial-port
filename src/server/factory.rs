@@ -107,9 +107,6 @@ impl Factory {
     }
 
     pub fn write_scan_results_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // Ensure the user root directory exists
-        pza_toolkit::path::ensure_user_root_dir_exists()?;
-
         // Get the factory scan results file path
         let scan_file_path =
             crate::path::scan_file().ok_or("Unable to determine factory scan results file path")?;
@@ -122,12 +119,7 @@ impl Factory {
         // Scan for devices
         let scan_results = self.scan();
 
-        // Serialize the scan results to pretty JSON
-        let json_content = serde_json::to_string_pretty(&scan_results)?;
-
-        // Write to file
-        std::fs::write(scan_file_path, json_content)?;
-
+        pza_toolkit::config::write_config(&scan_file_path, &scan_results)?;
         Ok(())
     }
 
