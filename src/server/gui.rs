@@ -19,7 +19,16 @@ use tracing_subscriber::field::debug;
 // use voltage_setter::VoltageSetter;
 
 const FAVICON: Asset = asset!("/assets/icons/icon.ico");
-// const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const SERIAL_DISPLAY_CSS: Asset = asset!("/assets/serial-display.css");
+
+/// Escape HTML special characters to prevent rendering issues
+fn escape_html(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
 
 #[component]
 pub fn Gui() -> Element {
@@ -86,10 +95,13 @@ pub fn Gui() -> Element {
                                     .replace("\r\n", "\n") // Windows line ending to Unix
                                     .replace("\r", "\n"); // Mac line ending to Unix
 
-                                // Add RX prefix with HTML span for green color
+                                // Escape HTML special characters
+                                let escaped_text = escape_html(processed_text.trim());
+
+                                // Add RX prefix with CSS class for green color
                                 let formatted_text = format!(
-                                    "<span style=\"color: #000;\">RX: {}</span>\n",
-                                    processed_text.trim()
+                                    "<span class=\"rx-data\">RX: {}</span>\n",
+                                    escaped_text
                                 );
                                 current_data.push_str(&formatted_text);
 
@@ -129,10 +141,13 @@ pub fn Gui() -> Element {
                                     .replace("\r\n", "\n") // Windows line ending to Unix
                                     .replace("\r", "\n"); // Mac line ending to Unix
 
-                                // Add TX prefix with HTML span for red color
+                                // Escape HTML special characters
+                                let escaped_text = escape_html(processed_text.trim());
+
+                                // Add TX prefix with CSS class for red color
                                 let formatted_text = format!(
-                                    "<span style=\"color: #ef4444;\">TX: {}</span>\n",
-                                    processed_text.trim()
+                                    "<span class=\"tx-data\">TX: {}</span>\n",
+                                    escaped_text
                                 );
                                 current_data.push_str(&formatted_text);
 
@@ -159,55 +174,90 @@ pub fn Gui() -> Element {
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
+        document::Link { rel: "stylesheet", href: SERIAL_DISPLAY_CSS }
+        document::Script {
+            r#"
+                // Auto-scroll serial terminal to bottom when content changes
+                document.addEventListener('DOMContentLoaded', function() {{
+                    const terminal = document.getElementById('serial-terminal');
+                    if (terminal) {{
+                        const observer = new MutationObserver(() => {{
+                            terminal.scrollTop = terminal.scrollHeight;
+                        }});
+                        observer.observe(terminal, {{ 
+                            childList: true, 
+                            subtree: true,
+                            characterData: true 
+                        }});
+                    }}
+                }});
+                
+                // Also handle dynamically created terminal
+                const checkTerminal = setInterval(() => {{
+                    const terminal = document.getElementById('serial-terminal');
+                    if (terminal) {{
+                        const observer = new MutationObserver(() => {{
+                            terminal.scrollTop = terminal.scrollHeight;
+                        }});
+                        observer.observe(terminal, {{ 
+                            childList: true, 
+                            subtree: true,
+                            characterData: true 
+                        }});
+                        clearInterval(checkTerminal);
+                    }}
+                }}, 100);
+            "#
+        }
 
         div {
-            class: "main-container min-h-screen bg-slate-900",
+            class: "main-container",
 
             header {
-                class: "flex justify-between items-center p-4 bg-slate-800 border-b border-slate-700",
+                class: "header",
 
                 h1 {
-                    class: "text-2xl font-bold text-white",
+                    class: "header-title",
                     "Panduza Serial Port"
                 }
             }
 
             main {
-                class: "p-4",
+                class: "main-content",
 
                 div {
-                    class: "bg-slate-800 rounded-lg p-4 mb-4",
+                    class: "card",
 
                     h2 {
-                        class: "text-lg font-semibold text-white mb-2",
+                        class: "card-title",
                         "Données série (TX/RX)"
                     }
 
                     div {
-                        class: "bg-black text-white font-mono text-sm p-4 rounded border h-96 overflow-y-auto",
-                        style: "max-height: 400px; white-space: pre-wrap; word-wrap: break-word;",
+                        id: "serial-terminal",
+                        class: "serial-terminal",
                         dangerous_inner_html: "{s_serial_data.read()}"
                     }
                 }
 
                 div {
-                    class: "bg-slate-800 rounded-lg p-4",
+                    class: "card",
 
                     h2 {
-                        class: "text-lg font-semibold text-white mb-2",
+                        class: "card-title",
                         "État de la connexion"
                     }
 
                     div {
-                        class: "text-sm",
+                        class: "status-container",
                         if s_client.read().is_some() {
                             span {
-                                class: "text-green-400",
+                                class: "status-connected",
                                 "✓ Client connecté"
                             }
                         } else {
                             span {
-                                class: "text-red-400",
+                                class: "status-disconnected",
                                 "✗ Client non connecté"
                             }
                         }

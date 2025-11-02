@@ -1,0 +1,109 @@
+/* Serial Display Styles */
+
+/* Main container styles */
+.main-container {
+    min-height: 100vh;
+    background-color: #0f172a; /* slate-900 */
+}
+
+/* Header styles */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #1e293b; /* slate-800 */
+    border-bottom: 1px solid #334155; /* slate-700 */
+}
+
+.header-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+}
+
+/* Main content styles */
+.main-content {
+    padding: 1rem;
+}
+
+/* Card styles */
+.card {
+    background-color: #1e293b; /* slate-800 */
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+/* Serial display terminal */
+.serial-terminal {
+    background-color: #000000;
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.875rem;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #374151;
+    height: 24rem; /* 384px */
+    max-height: 24rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for the serial terminal */
+.serial-terminal::-webkit-scrollbar {
+    width: 12px;
+}
+
+.serial-terminal::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 0.25rem;
+}
+
+.serial-terminal::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 0.25rem;
+}
+
+.serial-terminal::-webkit-scrollbar-thumb:hover {
+    background: #5a6578;
+}
+
+/* For Firefox */
+.serial-terminal {
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #1a1a1a;
+}
+
+/* TX/RX data styling */
+.tx-data {
+    color: #ef4444; /* red-500 */
+}
+
+.rx-data {
+    color: #22c55e; /* green-500 */
+}
+
+/* Connection status styles */
+.status-container {
+    font-size: 0.875rem;
+}
+
+.status-connected {
+    color: #4ade80; /* green-400 */
+}
+
+.status-disconnected {
+    color: #f87171; /* red-400 */
+}
