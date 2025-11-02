@@ -178,35 +178,45 @@ pub fn Gui() -> Element {
         document::Script {
             r#"
                 // Auto-scroll serial terminal to bottom when content changes
-                document.addEventListener('DOMContentLoaded', function() {{
-                    const terminal = document.getElementById('serial-terminal');
-                    if (terminal) {{
-                        const observer = new MutationObserver(() => {{
-                            terminal.scrollTop = terminal.scrollHeight;
-                        }});
-                        observer.observe(terminal, {{ 
-                            childList: true, 
-                            subtree: true,
-                            characterData: true 
-                        }});
+                (function() {{
+                    let observerInitialized = false;
+                    
+                    function initializeScrollObserver() {{
+                        if (observerInitialized) return;
+                        
+                        const terminal = document.getElementById('serial-terminal');
+                        if (terminal) {{
+                            const observer = new MutationObserver(() => {{
+                                terminal.scrollTop = terminal.scrollHeight;
+                            }});
+                            observer.observe(terminal, {{ 
+                                childList: true, 
+                                subtree: true,
+                                characterData: true 
+                            }});
+                            observerInitialized = true;
+                        }}
                     }}
-                }});
-                
-                // Also handle dynamically created terminal
-                const checkTerminal = setInterval(() => {{
-                    const terminal = document.getElementById('serial-terminal');
-                    if (terminal) {{
-                        const observer = new MutationObserver(() => {{
-                            terminal.scrollTop = terminal.scrollHeight;
-                        }});
-                        observer.observe(terminal, {{ 
-                            childList: true, 
-                            subtree: true,
-                            characterData: true 
-                        }});
-                        clearInterval(checkTerminal);
+                    
+                    // Try to initialize on DOMContentLoaded
+                    if (document.readyState === 'loading') {{
+                        document.addEventListener('DOMContentLoaded', initializeScrollObserver);
+                    }} else {{
+                        initializeScrollObserver();
                     }}
-                }}, 100);
+                    
+                    // Fallback: check periodically if terminal exists (for dynamic loading)
+                    const maxAttempts = 50; // 5 seconds max
+                    let attempts = 0;
+                    const checkTerminal = setInterval(() => {{
+                        attempts++;
+                        if (observerInitialized || attempts >= maxAttempts) {{
+                            clearInterval(checkTerminal);
+                        }} else {{
+                            initializeScrollObserver();
+                        }}
+                    }}, 100);
+                }})();
             "#
         }
 
