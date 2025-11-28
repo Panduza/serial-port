@@ -9,15 +9,12 @@ mod path;
 
 use crate::server::services::server_services;
 use crate::server::state::ServerState;
-use dioxus::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{debug, error, Level};
 
 use pza_toolkit::dioxus::logger::LoggerBuilder;
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::EnvFilter;
 
 use tracing::subscriber::{set_global_default, SetGlobalDefaultError};
 
@@ -80,6 +77,6 @@ fn main() {
         .expect("Server services crash");
     });
 
-    // Launch Dioxus app on the main thread
-    dioxus::launch(server::Gui);
+    // // Launch Dioxus app on the main thread
+    // dioxus::launch(server::Gui);
 }
