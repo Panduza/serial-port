@@ -23,18 +23,19 @@ use crate::config::ServerMainConfig;
 pub static SERVER_STATE_STORAGE: once_cell::sync::OnceCell<Arc<ServerState>> =
     once_cell::sync::OnceCell::new();
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // Init logger
-    LoggerBuilder::default()
-        .with_level(Level::TRACE)
-        .display_target(false)
-        .filter_rumqttd()
-        .filter_dioxus_core()
-        .filter_dioxus_signals()
-        .filter_warnings()
-        .filter_rmcp()
-        .build()
-        .expect("failed to init logger");
+    // LoggerBuilder::default()
+    //     .with_level(Level::TRACE)
+    //     .display_target(false)
+    //     .filter_rumqttd()
+    //     .filter_dioxus_core()
+    //     .filter_dioxus_signals()
+    //     .filter_warnings()
+    //     .filter_rmcp()
+    //     .build()
+    //     .expect("failed to init logger");
 
     // Ensure user root directory exists
     pza_toolkit::path::ensure_user_root_dir_exists()
@@ -78,5 +79,5 @@ fn main() {
     });
 
     // // Launch Dioxus app on the main thread
-    // dioxus::launch(server::Gui);
+    server::tui::run_tui().await.unwrap();
 }

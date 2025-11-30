@@ -12,6 +12,8 @@ pub struct PowerSupplyEmulator {
 }
 
 impl PowerSupplyEmulator {
+    //--------------------------------------------------------------------------
+
     /// Create a new power supply emulator instance
     pub fn new(config: SerialPortConfig) -> Self {
         Self { client: None }
