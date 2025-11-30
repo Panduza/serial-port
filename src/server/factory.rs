@@ -106,43 +106,43 @@ impl Factory {
         result
     }
 
-    pub fn write_scan_results_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // Get the factory scan results file path
-        let scan_file_path =
-            crate::path::scan_file().ok_or("Unable to determine factory scan results file path")?;
+    // pub fn write_scan_results_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+    //     // Get the factory scan results file path
+    //     let scan_file_path =
+    //         crate::path::scan_file().ok_or("Unable to determine factory scan results file path")?;
 
-        info!(
-            "Writing factory scan results to: {}",
-            scan_file_path.display()
-        );
+    //     info!(
+    //         "Writing factory scan results to: {}",
+    //         scan_file_path.display()
+    //     );
 
-        // Scan for devices
-        let scan_results = self.scan();
+    //     // Scan for devices
+    //     let scan_results = self.scan();
 
-        pza_toolkit::config::write_config(&scan_file_path, &scan_results)?;
-        Ok(())
-    }
+    //     pza_toolkit::config::write_config(&scan_file_path, &scan_results)?;
+    //     Ok(())
+    // }
 
-    /// Write the manifest data to the factory manifest file
-    pub fn write_manifest_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // Ensure the user root directory exists
-        pza_toolkit::path::ensure_user_root_dir_exists()?;
+    // /// Write the manifest data to the factory manifest file
+    // pub fn write_manifest_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+    //     // Ensure the user root directory exists
+    //     pza_toolkit::path::ensure_user_root_dir_exists()?;
 
-        // Get the factory manifest file path
-        let manifest_file_path = crate::path::factory_manifest_file()
-            .ok_or("Unable to determine factory manifest file path")?;
+    //     // Get the factory manifest file path
+    //     let manifest_file_path = crate::path::factory_manifest_file()
+    //         .ok_or("Unable to determine factory manifest file path")?;
 
-        info!(
-            "Writing factory manifest to: {}",
-            manifest_file_path.display()
-        );
+    //     info!(
+    //         "Writing factory manifest to: {}",
+    //         manifest_file_path.display()
+    //     );
 
-        // Serialize the manifest data to pretty JSON
-        let json_content = serde_json::to_string_pretty(&self.manifest)?;
+    //     // Serialize the manifest data to pretty JSON
+    //     let json_content = serde_json::to_string_pretty(&self.manifest)?;
 
-        // Write to file
-        std::fs::write(manifest_file_path, json_content)?;
+    //     // Write to file
+    //     std::fs::write(manifest_file_path, json_content)?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }

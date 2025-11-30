@@ -46,12 +46,12 @@ fn main() {
 
     // Create factory
     let factory = crate::server::factory::Factory::initialize();
-    factory
-        .write_scan_results_to_file()
-        .expect("Failed to write scan results");
-    factory
-        .write_manifest_to_file()
-        .expect("Failed to write manifest");
+    // factory
+    //     .write_scan_results_to_file()
+    //     .expect("Failed to write scan results");
+    // factory
+    //     .write_manifest_to_file()
+    //     .expect("Failed to write manifest");
 
     // Create global app state
     let server_state = ServerState {

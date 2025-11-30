@@ -29,7 +29,8 @@ dirs = "6.0.0"
 # ---
 # Local toolkit dependency
 # pza-toolkit = { path = "../toolkit" }
-pza-toolkit = { git = "https://github.com/Panduza/toolkit", tag = "0.1.2" }
+# pza-toolkit = { git = "https://github.com/Panduza/toolkit", tag = "0.1.2" }
+pza-toolkit = { git = "https://github.com/Panduza/toolkit", branch = "main" }
 # ---
 # Random string generator
 rand = "0.8.5"
