@@ -1,6 +1,6 @@
 pub mod cli;
 pub mod config;
-// pub mod drivers;
+pub mod drivers;
 // pub mod services;
 
 use clap::Parser;
@@ -44,8 +44,8 @@ pub async fn run_server() {
                 .setup_tracing()
                 .trace_config();
 
-            // // Load driver factory
-            // let factory = drivers::Factory::initialize();
+            // Load driver factory
+            let factory = drivers::Factory::initialize();
 
             // // Create Services instance
             // let mut services =

@@ -6,8 +6,8 @@ use tokio::sync::Mutex;
 use anyhow::anyhow;
 use tracing::info;
 
-use crate::config::SerialPortConfig;
-use crate::drivers::SerialPortDriver;
+use super::SerialPortDriver;
+use crate::server::config::SerialPortConfig;
 use pza_toolkit::config::UsbEndpointConfig;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use serial2_tokio::SerialPort;
@@ -73,7 +73,7 @@ impl StandardDriver {
             result.push(SerialPortConfig {
                 model: "standard".to_string(),
                 description: None,
-                endpoint: Some(crate::config::SerialPortEndpointConfig {
+                endpoint: Some(crate::server::config::SerialPortEndpointConfig {
                     name: name,
                     usb: usb,
                     baud_rate: Some(115200),

@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use pza_toolkit::rumqtt::client::RumqttCustomAsyncClient;
 use tracing::info;
 
-use crate::config::SerialPortConfig;
-use crate::drivers::SerialPortDriver;
+use super::SerialPortDriver;
+use crate::server::config::SerialPortConfig;
 
 /// A power supply emulator for testing and development purposes
 pub struct PowerSupplyEmulator {
