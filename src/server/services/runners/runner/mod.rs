@@ -1,5 +1,6 @@
-use crate::{constants, drivers::SerialPortDriver};
+use crate::server::drivers::SerialPortDriver;
 use bytes::Bytes;
+use pza_serial_port_client::SERVER_TYPE_NAME;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tracing::trace;
@@ -14,7 +15,7 @@ pub struct MqttRunnerHandler {
 }
 
 /// MQTT Runner for handling power supply commands and measurements
-pub struct MqttRunner {
+pub struct Runner {
     /// MQTT client
     client: RumqttCustomAsyncClient,
     /// Instance name
@@ -32,7 +33,7 @@ pub struct MqttRunner {
     topic_tx: String,
 }
 
-impl MqttRunner {
+impl Runner {
     // --------------------------------------------------------------------------------
 
     /// Start the runner
@@ -46,11 +47,11 @@ impl MqttRunner {
             client,
             rumqttc::QoS::AtMostOnce,
             true,
-            format!("{}/{}", constants::SERVER_TYPE_NAME, name),
+            format!("{}/{}", SERVER_TYPE_NAME, name),
         );
 
         // Create runner object
-        let runner = MqttRunner {
+        let runner = Runner {
             name: name.clone(),
             driver,
             topic_status: custom_client.topic_with_prefix("status"),
@@ -69,7 +70,7 @@ impl MqttRunner {
     // --------------------------------------------------------------------------------
 
     /// The main async task loop for the MQTT runner
-    async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: MqttRunner) {
+    async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: Runner) {
         // Subscribe to all relevant topics
         runner
             .client

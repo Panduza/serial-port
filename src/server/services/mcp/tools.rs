@@ -19,11 +19,11 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
 
-use crate::client::SerialPortClient;
 use crate::client::SerialPortClientBuilder;
 use bytes::{Buf, BytesMut};
+use pza_serial_port_client::SerialPortClient;
 
-use crate::config::ServerMainConfig;
+use crate::server::config::ServerConfig;
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 struct SendBytesParams {

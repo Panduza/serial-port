@@ -19,6 +19,7 @@ path = "src/lib.rs"
 
 hex = "0.4.3"
 once_cell = "1.21.3"
+tachyonfx = "0.20.1"
 # ---
 # Trait for async functions in traits
 async-trait = { version = "0.1.89" }

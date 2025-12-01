@@ -1,12 +1,11 @@
 pub mod cli;
 pub mod config;
 pub mod drivers;
-// pub mod services;
+pub mod services;
 
 use clap::Parser;
 use config::ServerConfig;
 
-// pub use state::ServerState;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

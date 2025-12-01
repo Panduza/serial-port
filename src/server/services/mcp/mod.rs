@@ -9,13 +9,14 @@ use tokio::signal;
 use tokio::sync::oneshot;
 use tower_http::cors::CorsLayer;
 
+use pza_serial_port_client::SERVER_TYPE_NAME;
 use tools::PowerSupplyService;
 
-use crate::config::ServerMainConfig;
+use crate::server::config::ServerConfig;
 
-pub struct McpServer {}
+pub struct McpService {}
 
-impl McpServer {
+impl McpService {
     //
     // Must take a list of psu names to manage
     // for each name
@@ -24,13 +25,15 @@ impl McpServer {
 
     /// Starts the server with the given service
     ///
-    pub async fn run(config: ServerMainConfig, psu_names: Vec<String>) -> anyhow::Result<()> {
+    pub async fn run(config: ServerConfig) -> anyhow::Result<()> {
         // Bind and serve the application
         let bind_address = format!("{}:{}", config.mcp.host, config.mcp.port);
         let listener = TcpListener::bind(&bind_address).await?;
 
         // Create the application router
         let mut app = Router::new().layer(CorsLayer::permissive());
+
+        let psu_names = config.runner_names();
 
         //
         for psu_name in psu_names {
@@ -45,7 +48,7 @@ impl McpServer {
 
             // MCP endpoint - using streamable_http_server for MCP protocol handling
             app = app.nest_service(
-                format!("/{}/{}", crate::constants::SERVER_TYPE_NAME, &psu_name).as_str(),
+                format!("/{}/{}", SERVER_TYPE_NAME, &psu_name).as_str(),
                 mcp_service,
             );
 
@@ -53,7 +56,7 @@ impl McpServer {
             tracing::info!(
                 "MCP server listening on http://{}{}",
                 bind_address,
-                format!("/{}/{}", crate::constants::SERVER_TYPE_NAME, &psu_name)
+                format!("/{}/{}", SERVER_TYPE_NAME, &psu_name)
             );
         }
 
