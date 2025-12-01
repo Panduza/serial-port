@@ -6,9 +6,8 @@ use std::path::PathBuf;
 pub fn server_config_file() -> Option<PathBuf> {
     server_configs_dir().map(|root| {
         root.join(format!(
-            "{}-{}.json5",
-            crate::constants::FILE_NAME_PREFIX,
-            crate::constants::SERVER_TYPE_NAME
+            "pza-{}.json5",
+            pza_serial_port_client::SERVER_TYPE_NAME
         ))
     })
 }

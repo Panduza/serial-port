@@ -7,6 +7,14 @@ description = "Panduza Serial Port Server - MQTT broker and device management"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "pza-serial-port"
+path = "src/main.rs"
+
+[lib]
+name = "pza_serial_port_client"
+path = "src/lib.rs"
+
 [dependencies]
 
 hex = "0.4.3"
