@@ -1,6 +1,6 @@
 [package]
 name = "pza-serial-port"
-version = "0.1.0"
+version = "0.1.0-rogue"
 authors = ["XdoctorwhoZ <xavier.rodriguezalvarez@gmail.com>"]
 edition = "2021"
 description = "Panduza Serial Port Server - MQTT broker and device management"
