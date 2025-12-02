@@ -11,7 +11,7 @@ use pza_toolkit::dioxus::logger::LoggerBuilder;
 use tracing::{debug, Level};
 
 use crate::server::config::tui::TuiConfig;
-// use crate::constants::DEFAULT_MCP_PORT;
+use pza_serial_port_client::DEFAULT_MCP_PORT;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GuiConfig {
@@ -80,7 +80,7 @@ impl Default for ServerConfig {
             mcp: McpServerConfig {
                 enable: true,
                 host: "127.0.0.1".to_string(),
-                port: 50051,
+                port: DEFAULT_MCP_PORT,
             },
             broker: MqttBrokerConfig::default(),
             runners: Some(devices),
