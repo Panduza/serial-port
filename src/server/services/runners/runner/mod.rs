@@ -1,8 +1,8 @@
 use crate::server::drivers::SerialPortDriver;
 use bytes::Bytes;
 use pza_serial_port_client::SERVER_TYPE_NAME;
-use std::{sync::Arc, time::Duration};
-use tokio::sync::Mutex;
+use std::{any, sync::Arc, time::Duration};
+use tokio::{sync::Mutex, task::JoinHandle};
 use tracing::trace;
 
 use pza_toolkit::rumqtt::client::{init_client, RumqttCustomAsyncClient};
@@ -37,10 +37,10 @@ impl Runner {
     // --------------------------------------------------------------------------------
 
     /// Start the runner
-    pub fn start(
+    pub async fn start(
         name: String,
         driver: Arc<Mutex<dyn SerialPortDriver + Send + Sync>>,
-    ) -> anyhow::Result<MqttRunnerHandler> {
+    ) -> anyhow::Result<JoinHandle<Result<(), anyhow::Error>>> {
         let (client, event_loop) = init_client("tttt");
 
         let custom_client = RumqttCustomAsyncClient::new(
@@ -64,13 +64,13 @@ impl Runner {
 
         let task_handler = tokio::spawn(Self::task_loop(event_loop, runner));
 
-        Ok(MqttRunnerHandler { task_handler })
+        Ok(task_handler)
     }
 
     // --------------------------------------------------------------------------------
 
     /// The main async task loop for the MQTT runner
-    async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: Runner) {
+    async fn task_loop(mut event_loop: rumqttc::EventLoop, runner: Runner) -> anyhow::Result<()> {
         // Subscribe to all relevant topics
         runner
             .client

@@ -46,14 +46,14 @@ pub async fn run_server() {
             // Load driver factory
             let factory = drivers::Factory::initialize();
 
-            // // Create Services instance
-            // let mut services =
-            //     services::Services::new(server_config, Arc::new(Mutex::new(factory)));
+            // Create Services instance
+            let mut services =
+                services::Services::new(server_config, Arc::new(Mutex::new(factory)));
 
-            // // Start services
-            // if let Err(e) = services.start().await {
-            //     eprintln!("Failed to start services: {}", e);
-            // }
+            // Start services
+            if let Err(e) = services.start().await {
+                eprintln!("Failed to start services: {}", e);
+            }
         }
     }
 }

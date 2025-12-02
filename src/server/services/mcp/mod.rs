@@ -25,7 +25,7 @@ impl McpService {
 
     /// Starts the server with the given service
     ///
-    pub async fn run(config: ServerConfig) -> anyhow::Result<()> {
+    pub async fn start(config: ServerConfig) -> anyhow::Result<()> {
         // Bind and serve the application
         let bind_address = format!("{}:{}", config.mcp.host, config.mcp.port);
         let listener = TcpListener::bind(&bind_address).await?;

@@ -19,7 +19,6 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
 
-use crate::client::SerialPortClientBuilder;
 use bytes::{Buf, BytesMut};
 use pza_serial_port_client::SerialPortClient;
 
@@ -93,8 +92,8 @@ pub struct PowerSupplyService {
 impl PowerSupplyService {
     //--------------------------------------------------------------------------
 
-    pub async fn new(config: ServerMainConfig, instance_name: String) -> anyhow::Result<Self> {
-        let client = SerialPortClientBuilder::default()
+    pub async fn new(config: ServerConfig, instance_name: String) -> anyhow::Result<Self> {
+        let client = SerialPortClient::builder()
             .with_ip(config.broker.tcp.unwrap().clone())
             .with_power_supply_name(instance_name.clone())
             .build()?;

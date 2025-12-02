@@ -4,7 +4,7 @@ use pza_toolkit::config::MqttBrokerConfig;
 pub use pza_toolkit::config::{IPEndpointConfig, SerialPortEndpointConfig};
 use serde::{de, Deserialize, Serialize};
 use serde_json;
-use std::collections::HashMap;
+use std::{any, collections::HashMap};
 // use std::path::Path;
 // use tracing::{error, info};
 use pza_toolkit::dioxus::logger::LoggerBuilder;
@@ -101,15 +101,15 @@ impl ServerConfig {
     /// Apply service overrides from CLI arguments
     ///
     pub fn apply_overrides(mut self, overrides: &crate::server::cli::ServicesOverrides) -> Self {
-        // if self.tui.enable.is_none() {
-        //     self.tui.enable = Some(true);
-        // }
+        if self.tui.enable.is_none() {
+            self.tui.enable = Some(true);
+        }
         // if overrides.no_mcp {
         //     self.mcp.enable = false;
         // }
-        // if overrides.no_tui {
-        //     self.tui.enable = Some(false);
-        // }
+        if overrides.no_tui {
+            self.tui.enable = Some(false);
+        }
         // if overrides.no_runners {
         //     self.runners = None;
         // }
